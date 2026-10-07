@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Monthly Action Plan — v3</title>
+<title>Monthly Action Plan — v4 Relative Strength</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <style>
   :root { --bg:#0e1117; --panel:#161b22; --line:#2a3038; --txt:#e6edf3; --muted:#8b949e; --accent:#58a6ff; --green:#3fb950; --red:#f85149; --amber:#d29922; --purple:#a371f7; --cyan:#39c5cf; }
@@ -87,24 +87,18 @@
   .rosterCard .meta { font-size:11px; color: var(--muted); margin-top:4px; }
   .rosterCard .ret { font-size:20px; font-weight:700; margin-top:8px; }
   .rosterCard .detail { font-size:11px; color: var(--muted); margin-top: 4px; }
-  .actionRow { padding:14px; border-bottom:1px solid var(--line); }
-  .actionRow:last-child { border-bottom: none; }
-  .actionHeader { display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; }
-  .actionTitle { font-size:15px; font-weight:700; }
-  .actionDetail { font-size:12px; color: var(--muted); margin:4px 0; }
-  .actionDetail b { color: var(--txt); }
 </style>
 </head>
 <body>
 
-<h1>📋 Monthly Action Plan — v3</h1>
-<div class="sub">MA filter · distance-from-MA score · months-above counter · hold-N-months mode</div>
+<h1>📋 Monthly Action Plan — v4 Relative Strength</h1>
+<div class="sub">Rank by 12-month performance vs SPY · filter: above MA + optional uptrend</div>
 
 <div class="panel">
   <div class="drop" id="drop">
     <div class="icon">📄</div>
     <div class="title">Load your historical CSV</div>
-    <div class="hint">Needs a <b>Date</b> column + one or more ticker columns</div>
+    <div class="hint">Needs a <b>Date</b> column + one or more ticker columns + <b>SPY</b> column for the benchmark</div>
     <input type="file" id="file" accept=".csv,.tsv,.txt,text/*" style="display:none" />
   </div>
   <div class="fileInfo" id="fileInfo" style="display:none">
@@ -125,6 +119,7 @@
 
 <div class="panel" id="pickerPanel" style="display:none">
   <h3>1. Filters &amp; Selection</h3>
+
   <div class="grid">
     <div>
       <label>MA Length (months)</label>
@@ -140,10 +135,10 @@
     <div>
       <label>Uptrend Filter</label>
       <select id="uptrendMonths">
-        <option value="0">Off</option>
+        <option value="0" selected>Off</option>
         <option value="1">Last 1 month up</option>
         <option value="2">Last 2 months up</option>
-        <option value="3" selected>Last 3 months up</option>
+        <option value="3">Last 3 months up</option>
         <option value="6">Last 6 months up</option>
       </select>
     </div>
@@ -170,13 +165,8 @@
       </select>
     </div>
     <div>
-      <label>Score Weighting</label>
-      <select id="scoreMode">
-        <option value="balanced" selected>Balanced</option>
-        <option value="fresh">Fresh crossovers</option>
-        <option value="momentum">Momentum</option>
-        <option value="quality">Quality</option>
-      </select>
+      <label>Benchmark Ticker</label>
+      <input id="benchmark" value="SPY" />
     </div>
   </div>
 
@@ -198,12 +188,14 @@
 </div>
 
 <div class="panel" id="scoringPanel" style="display:none">
-  <h3>🏆 Ticker Scoring</h3>
+  <h3>🏆 Relative Strength Ranking</h3>
+  <div style="font-size:12px;color:var(--muted);margin-bottom:12px;">
+    Only tickers ABOVE their MA and BEATING the benchmark over 12 months are eligible. Ranked by relative strength.
+  </div>
   <table>
     <thead><tr>
-      <th>#</th><th>Ticker</th><th class="num">Score</th>
-      <th class="num">% above MA</th><th class="num">Mo. above</th>
-      <th class="num">CAGR</th><th class="num">Sharpe</th><th class="num">Max DD</th><th></th>
+      <th>#</th><th>Ticker</th><th class="num">12m Ret</th><th class="num">vs SPY</th>
+      <th class="num">6m vs</th><th class="num">3m vs</th><th class="num">% above MA</th><th class="num">Mo. above</th><th></th>
     </tr></thead>
     <tbody id="scoringBody"></tbody>
   </table>
@@ -251,6 +243,10 @@ function nameBasket(dateSeed) {
   return `${months[d.getUTCMonth()]} ${d.getUTCFullYear()}`;
 }
 
+function getBenchmark() {
+  return ($("benchmark")?.value || "SPY").trim().toUpperCase();
+}
+
 /* ============== FILE ============== */
 const dropEl = $("drop"), fileEl = $("file"), infoEl = $("fileInfo");
 const nameEl = $("fileName"), metaEl = $("fileMeta"), clearEl = $("clearFile");
@@ -281,7 +277,7 @@ function handleFile(file) {
       metaEl.innerHTML = `${parsed.tickers.length} tickers · ${parsed.series[parsed.tickers[0]].length} months · <b>${parsed.freq}</b> · ${firstDate} → ${lastDate}`;
       infoEl.style.display = "flex";
       dropEl.style.display = "none";
-      $("okMsg").textContent = `✅ Loaded & scored ${parsed.tickers.length} tickers`;
+      $("okMsg").textContent = `✅ Loaded & ranked ${parsed.tickers.length} tickers`;
     } catch (err) {
       parsed = null;
       infoEl.style.display = "none"; dropEl.style.display = "";
@@ -299,7 +295,7 @@ $("parse").addEventListener("click", () => {
   if (!text.trim()) { $("err").textContent = "❌ Paste data first"; return; }
   try {
     loadParsed(parseCSV(text));
-    $("okMsg").textContent = `✅ Parsed & scored ${parsed.tickers.length} tickers`;
+    $("okMsg").textContent = `✅ Parsed & ranked ${parsed.tickers.length} tickers`;
   } catch (e) {
     parsed = null;
     $("pickerPanel").style.display = "none"; $("scoringPanel").style.display = "none";
@@ -311,7 +307,7 @@ function loadParsed(p) {
   parsed = p;
   tickerCache = null;
   computeAllScores();
-  const passing = Object.entries(scores).filter(([, s]) => !s.filtered).sort((a, b) => b[1].score - a[1].score);
+  const passing = Object.entries(scores).filter(([, s]) => !s.filtered).sort((a, b) => a[1].rank - b[1].rank);
   const basketN = +($("basketN")?.value ?? 10);
   selected = new Set(passing.slice(0, basketN).map(([tk]) => tk));
   renderTickers();
@@ -409,41 +405,7 @@ function toMonthlyFirst(rows) {
   return [...buckets.values()];
 }
 
-/* ============== STATS ============== */
-function computeStats(prices) {
-  let shares = 0, invested = 0;
-  const equity = [];
-  for (const p of prices) {
-    shares += 1 / p.close; invested += 1;
-    equity.push({ x: p.date, y: shares * p.close });
-  }
-  const final = equity.at(-1).y;
-  const years = prices.length / 12;
-  const cagr = years > 0 ? Math.pow(final / invested, 1 / years) - 1 : 0;
-  const rets = [];
-  for (let i = 1; i < equity.length; i++) {
-    const a = equity[i - 1].y, b = equity[i].y;
-    if (a > 0) rets.push(b / a - 1);
-  }
-  const mean = rets.reduce((s, r) => s + r, 0) / (rets.length || 1);
-  const variance = rets.reduce((s, r) => s + (r - mean) ** 2, 0) / (rets.length || 1);
-  const vol = Math.sqrt(variance) * Math.sqrt(12);
-  const rf = 0.04;
-  const sharpe = vol > 0 ? (cagr - rf) / vol : 0;
-  const downside = rets.filter(r => r < 0);
-  const downVar = downside.reduce((s, r) => s + r * r, 0) / (downside.length || 1);
-  const downVol = Math.sqrt(downVar) * Math.sqrt(12);
-  const sortino = downVol > 0 ? (cagr - rf) / downVol : 0;
-  let peak = equity[0].y, maxDD = 0;
-  for (const p of equity) {
-    if (p.y > peak) peak = p.y;
-    const dd = (p.y - peak) / peak;
-    if (dd < maxDD) maxDD = dd;
-  }
-  const calmar = maxDD < 0 ? cagr / Math.abs(maxDD) : 0;
-  return { cagr, sharpe, sortino, maxDD, calmar };
-}
-
+/* ============== MA ============== */
 function computeMA(series, n) {
   const out = []; let sum = 0; const buf = [];
   for (const p of series) {
@@ -464,42 +426,42 @@ function monthsAboveMA(prices, ma) {
   return count;
 }
 
-function distanceFromMA(prices, ma) {
-  const p = prices.at(-1).close;
-  const m = ma.at(-1);
-  if (m == null || m === 0) return 0;
-  return (p - m) / m;
-}
+/* ============== SCORING — relative strength ============== */
+function computeRelativeStrength(prices, spyPrices) {
+  const n = prices.length;
+  const m = spyPrices.length;
+  const out = { stock12m: 0, stock6m: 0, stock3m: 0, spy12m: 0, vsSPY: 0, vs6m: 0, vs3m: 0 };
 
-/* ============== SCORING ============== */
-function scoreMetrics(r, norm, scoreMode) {
-  if (scoreMode === "fresh") {
-    const freshBonus = 1 - norm(r.monthsAbove, "monthsAbove");
-    const distPenalty = Math.abs(r.dist) < 0.15 ? 1 : 0.5;
-    return (0.5 * freshBonus + 0.3 * norm(r.sharpe, "sharpe") + 0.2 * norm(r.cagr, "cagr")) * distPenalty;
-  }
-  if (scoreMode === "momentum") {
-    return 0.5 * norm(r.cagr, "cagr") + 0.3 * norm(r.sharpe, "sharpe") + 0.2 * norm(r.calmar, "calmar");
-  }
-  if (scoreMode === "quality") {
-    return 0.5 * norm(r.sharpe, "sharpe") + 0.3 * norm(r.calmar, "calmar") + 0.2 * norm(r.maxDD, "maxDD");
-  }
-  const freshBonus = 1 - norm(r.monthsAbove, "monthsAbove");
-  const distFit = Math.abs(r.dist) < 0.2 ? 1 - Math.abs(r.dist) : 0.6;
-  return 0.30 * norm(r.sharpe, "sharpe") + 0.25 * norm(r.cagr, "cagr") +
-         0.15 * norm(r.calmar, "calmar") + 0.15 * freshBonus + 0.15 * distFit;
+  if (n >= 13) out.stock12m = prices[n-1].close / prices[n-13].close - 1;
+  if (n >= 7)  out.stock6m  = prices[n-1].close / prices[n-7].close - 1;
+  if (n >= 4)  out.stock3m  = prices[n-1].close / prices[n-4].close - 1;
+
+  if (m >= 13) out.spy12m = spyPrices[m-1].close / spyPrices[m-13].close - 1;
+  if (m >= 7)  out.spy6m  = spyPrices[m-1].close / spyPrices[m-7].close - 1;
+  if (m >= 4)  out.spy3m  = spyPrices[m-1].close / spyPrices[m-4].close - 1;
+
+  out.vsSPY = out.stock12m - out.spy12m;
+  out.vs6m  = out.stock6m  - (out.spy6m || 0);
+  out.vs3m  = out.stock3m  - (out.spy3m || 0);
+  return out;
 }
 
 function computeAllScores() {
   scores = {};
-  const raw = {};
   const maLen = +($("maLen")?.value ?? 20);
-  const uptrendN = +($("uptrendMonths")?.value ?? 3);
-  const scoreMode = $("scoreMode")?.value ?? "balanced";
+  const uptrendN = +($("uptrendMonths")?.value ?? 0);
+  const bench = getBenchmark();
+  const benchSeries = parsed.series[bench];
+
+  if (!benchSeries) {
+    $("err").textContent = `⚠️ Benchmark "${bench}" not found in the data. Using absolute 12m return > 0 as the filter.`;
+  }
 
   for (const tk of parsed.tickers) {
+    if (tk === bench) continue;
     const prices = parsed.series[tk];
     if (!prices || prices.length < maLen + 5) continue;
+    if (prices.length < 13) continue;
 
     const ma = computeMA(prices, maLen);
     const lastPrice = prices.at(-1).close;
@@ -514,50 +476,41 @@ function computeAllScores() {
       }
     }
 
-    const passesFilters = aboveMA && upAllN;
-    const metrics = computeStats(prices);
-    const dist = aboveMA ? distanceFromMA(prices, ma) : 0;
-    const monthsAbove = monthsAboveMA(prices, ma);
+    const rs = benchSeries
+      ? computeRelativeStrength(prices, benchSeries)
+      : (() => {
+          const n = prices.length;
+          const s12 = n >= 13 ? prices[n-1].close / prices[n-13].close - 1 : 0;
+          const s6  = n >= 7  ? prices[n-1].close / prices[n-7].close - 1 : 0;
+          const s3  = n >= 4  ? prices[n-1].close / prices[n-4].close - 1 : 0;
+          return { stock12m: s12, stock6m: s6, stock3m: s3, spy12m: 0, vsSPY: s12, vs6m: s6, vs3m: s3 };
+        })();
+
+    const passesBeatBench = rs.vsSPY > 0;
+    const passesFilters = aboveMA && upAllN && passesBeatBench;
+
+    const row = {
+      stock12m: rs.stock12m, stock6m: rs.stock6m, stock3m: rs.stock3m,
+      vsSPY: rs.vsSPY, vs6m: rs.vs6m, vs3m: rs.vs3m,
+      dist: aboveMA ? (lastPrice - lastMA) / lastMA : 0,
+      monthsAbove: monthsAboveMA(prices, ma)
+    };
 
     if (!passesFilters) {
-      scores[tk] = { ...metrics, score: -1, rank: 9999, filtered: true,
-                     reason: !aboveMA ? "below MA" : `down in last ${uptrendN}`,
-                     dist, monthsAbove };
+      scores[tk] = { ...row, score: -1, rank: 9999, filtered: true,
+        reason: !aboveMA ? "below MA" : (!upAllN ? `down in last ${uptrendN}` : `underperformed ${bench}`) };
       continue;
     }
-    raw[tk] = { ...metrics, dist, monthsAbove };
+
+    // Score: blended relative strength. Recent windows matter more.
+    scores[tk] = { ...row, score: rs.vsSPY * 0.5 + rs.vs6m * 0.3 + rs.vs3m * 0.2 };
   }
 
-  const keys = Object.keys(raw);
-  if (keys.length === 0) {
-    const ranked = Object.entries(scores).sort((a, b) => (b[1].cagr ?? -1) - (a[1].cagr ?? -1));
-    ranked.forEach(([tk], i) => { scores[tk].rank = i + 1; });
-    parsed.tickers.sort((a, b) => (scores[a]?.rank ?? 9999) - (scores[b]?.rank ?? 9999));
-    return;
-  }
+  const passing = Object.entries(scores).filter(([, s]) => !s.filtered).sort((a, b) => b[1].score - a[1].score);
+  passing.forEach(([tk], i) => { scores[tk].rank = i + 1; });
 
-  const allMetrics = ["cagr", "sharpe", "sortino", "maxDD", "calmar", "dist", "monthsAbove"];
-  const mins = {}; const maxs = {};
-  for (const k of allMetrics) { mins[k] = Infinity; maxs[k] = -Infinity; }
-  for (const tk of keys) {
-    const r = raw[tk];
-    for (const k of allMetrics) {
-      if (r[k] < mins[k]) mins[k] = r[k];
-      if (r[k] > maxs[k]) maxs[k] = r[k];
-    }
-  }
-  const norm = (v, k) => (maxs[k] === mins[k]) ? 0.5 : (v - mins[k]) / (maxs[k] - mins[k]);
-
-  for (const tk of keys) {
-    scores[tk] = { ...raw[tk], score: scoreMetrics(raw[tk], norm, scoreMode) };
-  }
-
-  const passing = keys.sort((a, b) => scores[b].score - scores[a].score);
-  passing.forEach((tk, i) => { scores[tk].rank = i + 1; });
-
-  const filtered = Object.keys(scores).filter(tk => scores[tk].filtered);
-  filtered.sort((a, b) => (scores[b].cagr ?? -1) - (scores[a].cagr ?? -1));
-  filtered.forEach((tk, i) => { scores[tk].rank = 1000 + i; });
+  const filtered = Object.entries(scores).filter(([, s]) => s.filtered).sort((a, b) => (b[1].stock12m ?? -1) - (a[1].stock12m ?? -1));
+  filtered.forEach(([tk], i) => { scores[tk].rank = 1000 + i; });
 
   parsed.tickers.sort((a, b) => (scores[a]?.rank ?? 9999) - (scores[b]?.rank ?? 9999));
 }
@@ -571,7 +524,7 @@ function renderTickers() {
     const chip = document.createElement("div");
     chip.className = "chip" + (selected.has(tk) ? " active" : "") + (s?.filtered ? " filtered" : "");
     chip.innerHTML = `${tk}${s && !s.filtered ? `<span class="rank">#${s.rank}</span>` : ""}`;
-    chip.title = s?.filtered ? `Filtered: ${s.reason}` : (s ? `Score ${s.score.toFixed(3)}` : "");
+    chip.title = s?.filtered ? `Filtered: ${s.reason}` : (s ? `vs SPY 12m: ${(s.vsSPY*100).toFixed(1)}%` : "");
     chip.addEventListener("click", () => {
       if (selected.has(tk)) selected.delete(tk); else selected.add(tk);
       renderTickers();
@@ -592,7 +545,7 @@ $("invertSel").addEventListener("click", () => {
 $("autoPick").addEventListener("click", () => {
   if (!parsed) return;
   const n = +$("basketN").value;
-  const passing = Object.entries(scores).filter(([, s]) => !s.filtered).sort((a, b) => b[1].score - a[1].score);
+  const passing = Object.entries(scores).filter(([, s]) => !s.filtered).sort((a, b) => a[1].rank - b[1].rank);
   selected = new Set(passing.slice(0, n).map(([tk]) => tk));
   renderTickers();
   $("okMsg").textContent = `✅ Auto-picked top ${Math.min(n, passing.length)} (${passing.length} passed the filter)`;
@@ -606,7 +559,7 @@ document.querySelectorAll(".maRow button").forEach(b => {
     if (parsed) { computeAllScores(); renderTickers(); renderScoringTable(); }
   });
 });
-["uptrendMonths","scoreMode"].forEach(id => {
+["uptrendMonths","benchmark"].forEach(id => {
   $(id).addEventListener("change", () => {
     if (!parsed) return;
     computeAllScores(); renderTickers(); renderScoringTable();
@@ -620,33 +573,31 @@ function renderScoringTable() {
   const tbody = $("scoringBody");
   if (!tbody) return;
   const ranked = Object.entries(scores).sort((a, b) => a[1].rank - b[1].rank);
-  const passingScores = ranked.filter(([,s]) => !s.filtered).map(([,s]) => s.score);
-  const maxScore = passingScores.length ? Math.max(...passingScores) : 1;
+  const passing = ranked.filter(([,s]) => !s.filtered);
+  const maxScore = passing.length ? Math.max(...passing.map(([,s]) => s.score)) : 1;
 
-  tbody.innerHTML = ranked.slice(0, 50).map(([tk, s]) => {
+  tbody.innerHTML = ranked.slice(0, 60).map(([tk, s]) => {
     const inSel = selected.has(tk);
     if (s.filtered) {
       return `<tr style="opacity:0.35;">
         <td class="m">—</td>
         <td><b>${tk}</b> <span class="badge2" style="color:var(--red);border-color:var(--red);">${s.reason}</span></td>
-        <td class="num m">—</td>
-        <td class="num m">—</td><td class="num m">—</td>
-        <td class="num ${s.cagr >= 0 ? 'g' : 'r'}">${(s.cagr*100).toFixed(1)}%</td>
-        <td class="num ${s.sharpe >= 0 ? 'g' : 'r'}">${s.sharpe.toFixed(2)}</td>
-        <td class="num r">${(s.maxDD*100).toFixed(1)}%</td>
+        <td class="num ${s.stock12m >= 0 ? 'g' : 'r'}">${((s.stock12m||0)*100).toFixed(1)}%</td>
+        <td class="num ${s.vsSPY >= 0 ? 'g' : 'r'}">${((s.vsSPY||0)*100).toFixed(1)}%</td>
+        <td class="num m">—</td><td class="num m">—</td><td class="num m">—</td><td class="num m">—</td>
         <td><button class="ghost small" data-tk="${tk}">${inSel ? "✓ In" : "Add"}</button></td>
       </tr>`;
     }
-    const barWidth = Math.round(60 * (s.score / maxScore));
+    const barWidth = Math.round(60 * (s.score / (maxScore || 1)));
     return `<tr style="${inSel ? 'background:#0d1826;' : ''}">
       <td><b style="color:var(--muted);">${s.rank}</b></td>
       <td><b style="color:var(--accent);">${tk}</b></td>
-      <td class="num"><b>${s.score.toFixed(3)}</b><span class="scoreBar" style="width:${barWidth}px;"></span></td>
+      <td class="num ${s.stock12m >= 0 ? 'g' : 'r'}">${(s.stock12m*100).toFixed(1)}%</td>
+      <td class="num ${s.vsSPY >= 0 ? 'g' : 'r'}"><b>${s.vsSPY >= 0 ? '+' : ''}${(s.vsSPY*100).toFixed(1)}%</b><span class="scoreBar" style="width:${barWidth}px;"></span></td>
+      <td class="num ${s.vs6m >= 0 ? 'g' : 'r'}">${s.vs6m >= 0 ? '+' : ''}${(s.vs6m*100).toFixed(1)}%</td>
+      <td class="num ${s.vs3m >= 0 ? 'g' : 'r'}">${s.vs3m >= 0 ? '+' : ''}${(s.vs3m*100).toFixed(1)}%</td>
       <td class="num">${(s.dist*100).toFixed(1)}%</td>
       <td class="num">${s.monthsAbove}mo</td>
-      <td class="num ${s.cagr >= 0 ? 'g' : 'r'}">${(s.cagr*100).toFixed(1)}%</td>
-      <td class="num ${s.sharpe >= 0 ? 'g' : 'r'}">${s.sharpe.toFixed(2)}</td>
-      <td class="num r">${(s.maxDD*100).toFixed(1)}%</td>
       <td><button class="ghost small" data-tk="${tk}">${inSel ? "✓ In" : "Add"}</button></td>
     </tr>`;
   }).join("");
@@ -700,17 +651,21 @@ function buildTickerCache() {
   return cache;
 }
 
-function pickBasketAsOf(asOfDate, n, maLen, uptrendN, scoreMode) {
+function pickBasketAsOf(asOfDate, n, maLen, uptrendN) {
   if (!tickerCache) tickerCache = buildTickerCache();
   const asOfKey = asOfDate.toISOString().slice(0,10);
-  const localScores = {};
+  const bench = getBenchmark();
+  const benchT = tickerCache[bench];
+  const local = [];
 
   for (const tk of Object.keys(tickerCache)) {
+    if (tk === bench) continue;
     const t = tickerCache[tk];
     const idxEnd = t.map[asOfKey];
     if (idxEnd == null || idxEnd < maLen + 5) continue;
-    const upTo = t.series.slice(0, idxEnd + 1);
+    if (idxEnd < 12) continue;
 
+    const upTo = t.series.slice(0, idxEnd + 1);
     const ma = computeMA(upTo, maLen);
     const lastPrice = upTo.at(-1).close;
     const lastMA = ma.at(-1);
@@ -725,37 +680,30 @@ function pickBasketAsOf(asOfDate, n, maLen, uptrendN, scoreMode) {
       if (!upAllN) continue;
     }
 
-    localScores[tk] = {
-      ...computeStats(upTo),
-      dist: (lastPrice - lastMA) / lastMA,
-      monthsAbove: monthsAboveMA(upTo, ma)
-    };
-  }
-
-  const keys = Object.keys(localScores);
-  if (keys.length === 0) return [];
-
-  const allMetrics = ["cagr", "sharpe", "sortino", "maxDD", "calmar", "dist", "monthsAbove"];
-  const mins = {}; const maxs = {};
-  for (const k of allMetrics) { mins[k] = Infinity; maxs[k] = -Infinity; }
-  for (const tk of keys) {
-    const r = localScores[tk];
-    for (const k of allMetrics) {
-      if (r[k] < mins[k]) mins[k] = r[k];
-      if (r[k] > maxs[k]) maxs[k] = r[k];
+    // Compute relative strength up to asOf
+    let spyUpTo = null;
+    if (benchT) {
+      const bIdx = benchT.map[asOfKey];
+      if (bIdx != null && bIdx >= 12) spyUpTo = benchT.series.slice(0, bIdx + 1);
     }
+    const rs = spyUpTo ? computeRelativeStrength(upTo, spyUpTo)
+      : (() => {
+          const len = upTo.length;
+          const s12 = len >= 13 ? upTo[len-1].close / upTo[len-13].close - 1 : 0;
+          const s6  = len >= 7  ? upTo[len-1].close / upTo[len-7].close - 1 : 0;
+          const s3  = len >= 4  ? upTo[len-1].close / upTo[len-4].close - 1 : 0;
+          return { vsSPY: s12, vs6m: s6, vs3m: s3 };
+        })();
+
+    if (rs.vsSPY <= 0) continue;
+    local.push({ tk, score: rs.vsSPY * 0.5 + rs.vs6m * 0.3 + rs.vs3m * 0.2 });
   }
-  const norm = (v, k) => (maxs[k] === mins[k]) ? 0.5 : (v - mins[k]) / (maxs[k] - mins[k]);
 
-  const ranked = keys.map(tk => ({
-    tk,
-    score: scoreMetrics(localScores[tk], norm, scoreMode)
-  })).sort((a, b) => b.score - a.score);
-
-  return ranked.slice(0, n).map(x => x.tk);
+  local.sort((a, b) => b.score - a.score);
+  return local.slice(0, n).map(x => x.tk);
 }
 
-function historicalBaskets(n, maLen, uptrendN, scoreMode, holdMonths) {
+function historicalBaskets(n, maLen, uptrendN, holdMonths) {
   if (!tickerCache) tickerCache = buildTickerCache();
   const anchorTk = parsed.tickers[0];
   if (!anchorTk || !parsed.series[anchorTk]) return [];
@@ -764,12 +712,13 @@ function historicalBaskets(n, maLen, uptrendN, scoreMode, holdMonths) {
   const out = [];
   const step = Math.max(1, holdMonths || 1);
   const latestKey = timeline[timeline.length - 1].toISOString().slice(0,10);
+  const bench = getBenchmark();
 
   for (let i = Math.max(maLen + 5, timeline.length - 13); i < timeline.length - 1; i += step) {
     const asOf = timeline[i];
     const asOfKey = asOf.toISOString().slice(0,10);
 
-    const topN = pickBasketAsOf(asOf, n, maLen, uptrendN, scoreMode);
+    const topN = pickBasketAsOf(asOf, n, maLen, uptrendN);
     if (topN.length === 0) continue;
 
     const rets = [];
@@ -785,8 +734,8 @@ function historicalBaskets(n, maLen, uptrendN, scoreMode, holdMonths) {
     const basketRet = rets.reduce((s, r) => s + r, 0) / rets.length;
 
     let benchmarkRet = null;
-    if (tickerCache["SPY"]) {
-      const t = tickerCache["SPY"];
+    if (tickerCache[bench]) {
+      const t = tickerCache[bench];
       const iStart = t.map[asOfKey];
       const iEnd = t.map[latestKey];
       if (iStart != null && iEnd != null && iStart !== iEnd) {
@@ -815,7 +764,6 @@ $("run").addEventListener("click", () => {
     const maLen = +$("maLen").value;
     const basketN = +$("basketN").value;
     const uptrendN = +$("uptrendMonths").value;
-    const scoreMode = $("scoreMode").value;
     const holdMonths = +$("holdMode").value;
     const selectedArr = [...selected].sort((a, b) => (scores[a]?.rank ?? 999) - (scores[b]?.rank ?? 999));
 
@@ -838,7 +786,7 @@ $("run").addEventListener("click", () => {
     catch (e) { console.error("Rolling failed:", e); }
 
     let history = [];
-    try { history = historicalBaskets(basketN, maLen, uptrendN, scoreMode, holdMonths); }
+    try { history = historicalBaskets(basketN, maLen, uptrendN, holdMonths); }
     catch (e) { console.error("History failed:", e); }
 
     try { renderRosterPanel(history, thisMonthName); }
@@ -942,6 +890,7 @@ function renderRosterPanel(history, currentName) {
     container.innerHTML = "<div style='color:var(--muted);padding:14px;'>Not enough history. Try loosening filters.</div>";
     return;
   }
+  const bench = getBenchmark();
   const rows = [...history].reverse();
   container.innerHTML = rows.map(r => {
     const cls = r.basketRet >= 0 ? "g" : "r";
@@ -949,7 +898,7 @@ function renderRosterPanel(history, currentName) {
     let vsText = "";
     if (r.benchmarkRet != null) {
       const diff = r.basketRet - r.benchmarkRet;
-      vsText = `${(diff*100 >= 0 ? '+' : '')}${(diff*100).toFixed(1)} pts vs SPY`;
+      vsText = `${(diff*100 >= 0 ? '+' : '')}${(diff*100).toFixed(1)} pts vs ${bench}`;
     }
     return `<div class="rosterCard ${isCurrent ? 'current' : ''}">
       <div class="name">${r.name} Basket</div>
@@ -967,6 +916,7 @@ function renderHistoryPanel(history, currentName) {
     container.innerHTML = "<div style='color:var(--muted);padding:14px;'>No prior baskets computed.</div>";
     return;
   }
+  const bench = getBenchmark();
   const rows = [...history].reverse();
   container.innerHTML = rows.map(r => {
     const bCls = r.basketRet >= 0 ? "g" : "r";
@@ -1014,14 +964,16 @@ function renderBasketPlan(rows, amount) {
   if (buys.length === 0) { box.style.display = "none"; return; }
   const perTicker = amount / buys.length;
   let html = `<div style="font-size:13px;color:var(--muted);margin-bottom:10px;">Contribute <b style="color:var(--txt);">$${amount.toLocaleString()}</b> split evenly across <b style="color:var(--txt);">${buys.length}</b> active tickers. Each gets <b style="color:var(--amber);">$${perTicker.toFixed(2)}</b>.</div>`;
-  html += `<table><thead><tr><th>#</th><th>Ticker</th><th class="num">Action</th><th class="num">Price</th><th class="num">MA</th><th class="num">$ to Buy</th></tr></thead><tbody>`;
+  html += `<table><thead><tr><th>#</th><th>Ticker</th><th class="num">Action</th><th class="num">Price</th><th class="num">MA</th><th class="num">vs SPY 12m</th><th class="num">$ to Buy</th></tr></thead><tbody>`;
   buys.forEach(r => {
     const s = scores[r.ticker];
     const rank = s?.rank ?? "—";
+    const vs = s?.vsSPY != null ? (s.vsSPY >= 0 ? '+' : '') + (s.vsSPY*100).toFixed(1) + '%' : '—';
     html += `<tr><td class="m">#${rank}</td><td><b style="color:var(--accent);">${r.ticker}</b></td>
       <td class="num"><span class="badge ${r.action}">${r.action}</span></td>
       <td class="num">$${r.lastPrice.toFixed(2)}</td>
       <td class="num">${r.lastMA == null ? "—" : "$" + r.lastMA.toFixed(2)}</td>
+      <td class="num ${s?.vsSPY >= 0 ? 'g' : 'r'}">${vs}</td>
       <td class="num"><b>$${perTicker.toFixed(2)}</b></td></tr>`;
   });
   html += "</tbody></table>";
@@ -1039,7 +991,7 @@ $("saveSel").addEventListener("click", () => {
     maLen: +$("maLen").value,
     uptrendMonths: +$("uptrendMonths").value,
     basketN: +$("basketN").value,
-    scoreMode: $("scoreMode").value,
+    benchmark: $("benchmark").value,
     holdMode: +$("holdMode").value,
   };
   const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
@@ -1061,7 +1013,7 @@ $("loadSelFile").addEventListener("change", e => {
       if (data.maLen != null) $("maLen").value = data.maLen;
       if (data.uptrendMonths != null) $("uptrendMonths").value = data.uptrendMonths;
       if (data.basketN) $("basketN").value = data.basketN;
-      if (data.scoreMode) $("scoreMode").value = data.scoreMode;
+      if (data.benchmark) $("benchmark").value = data.benchmark;
       if (data.holdMode) $("holdMode").value = data.holdMode;
       if (Array.isArray(data.tickers) && parsed) {
         const valid = data.tickers.filter(tk => parsed.tickers.includes(tk));
@@ -1080,13 +1032,14 @@ $("exportPlan").addEventListener("click", () => {
   const buys = rows.filter(r => r.action === "BUY" || r.action === "REBUY");
   const perTicker = buys.length > 0 ? lastPlan.amount / buys.length : 0;
   const basketName = nameBasket(lastPlan.asOf);
-  const header = "basket_name,rank,ticker,action,last_price,ma,dollar_amount,note";
+  const header = "basket_name,rank,ticker,action,last_price,ma,vs_spy_12m,dollar_amount,note";
   const lines = rows.map(r => {
     const s = scores[r.ticker];
     const rank = s?.rank ?? "";
+    const vs = s?.vsSPY != null ? (s.vsSPY*100).toFixed(1) : "";
     const amt = (r.action === "BUY" || r.action === "REBUY") ? perTicker.toFixed(2) : "0.00";
     let note = r.action === "SELL" ? "Sell 100%" : r.action === "REBUY" ? "Rebuy all cash" : r.action === "BUY" ? "Monthly buy" : "Hold cash";
-    return `"${basketName}",${rank},${r.ticker},${r.action},${r.lastPrice.toFixed(2)},${r.lastMA != null ? r.lastMA.toFixed(2) : ""},${amt},"${note}"`;
+    return `"${basketName}",${rank},${r.ticker},${r.action},${r.lastPrice.toFixed(2)},${r.lastMA != null ? r.lastMA.toFixed(2) : ""},${vs},${amt},"${note}"`;
   });
   const csv = [header, ...lines].join("\n");
   const blob = new Blob([csv], { type: "text/csv" });
