@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Monthly Action Plan — v4 Relative Strength</title>
+<title>Monthly Action Plan — v5 Dual Benchmark</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <style>
   :root { --bg:#0e1117; --panel:#161b22; --line:#2a3038; --txt:#e6edf3; --muted:#8b949e; --accent:#58a6ff; --green:#3fb950; --red:#f85149; --amber:#d29922; --purple:#a371f7; --cyan:#39c5cf; }
@@ -70,15 +70,6 @@
   .rollingCard .ret { font-size:26px; font-weight:700; }
   .rollingCard .detail { font-size:11px; color:var(--muted); margin-top:4px; line-height:1.5; }
   .badge2 { display:inline-block; padding:1px 6px; border-radius:6px; font-size:10px; background:#0d1117; border:1px solid var(--line); color:var(--muted); margin-left:4px; }
-  .histRow { padding:14px; border-bottom:1px solid var(--line); display:grid; grid-template-columns: 130px 1fr 110px 110px 90px; gap:14px; align-items:center; }
-  .histRow:last-child { border-bottom:none; }
-  .histMonth { font-weight:700; color:var(--accent); font-size:14px; }
-  .histMonthSub { font-size:11px; color: var(--muted); font-weight: 400; margin-top: 2px; }
-  .histPicks { font-size:12px; color: var(--muted); line-height: 1.5; }
-  .histPicks b { color: var(--txt); }
-  .histResult { font-weight:700; font-size:15px; text-align:right; }
-  .histVs { text-align:right; font-size:12px; color: var(--muted); }
-  .histDays { text-align:right; font-size:11px; color: var(--muted); }
   .roster { display:grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap:12px; }
   .rosterCard { background:#0d1117; border:1px solid var(--line); border-radius:8px; padding:14px; }
   .rosterCard.current { border-color: var(--amber); }
@@ -87,18 +78,28 @@
   .rosterCard .meta { font-size:11px; color: var(--muted); margin-top:4px; }
   .rosterCard .ret { font-size:20px; font-weight:700; margin-top:8px; }
   .rosterCard .detail { font-size:11px; color: var(--muted); margin-top: 4px; }
+  .histRow { display:grid; grid-template-columns: 130px 1fr 110px 110px 110px 90px; gap:14px; padding:12px 14px; border-bottom:1px solid var(--line); align-items:center; }
+  .histRow:last-child { border-bottom:none; }
+  .histHead { display:grid; grid-template-columns: 130px 1fr 110px 110px 110px 90px; gap:14px; padding:8px 14px; border-bottom:1px solid var(--line); color:var(--muted); font-size:11px; text-transform:uppercase; letter-spacing:.4px; }
+  .histMonth { font-weight:700; color:var(--accent); font-size:14px; }
+  .histMonthSub { font-size:11px; color: var(--muted); font-weight: 400; margin-top: 2px; }
+  .histPicks { font-size:12px; color: var(--muted); line-height: 1.5; }
+  .histPicks b { color: var(--txt); }
+  .histResult { font-weight:700; font-size:15px; text-align:right; }
+  .histVs { text-align:right; font-size:12px; }
+  .histDays { text-align:right; font-size:11px; color: var(--muted); }
 </style>
 </head>
 <body>
 
-<h1>📋 Monthly Action Plan — v4 Relative Strength</h1>
-<div class="sub">Rank by 12-month performance vs SPY · filter: above MA + optional uptrend</div>
+<h1>📋 Monthly Action Plan — v5 Dual Benchmark</h1>
+<div class="sub">Rank by 12-month relative strength · dual benchmarks · 36-month roster</div>
 
 <div class="panel">
   <div class="drop" id="drop">
     <div class="icon">📄</div>
     <div class="title">Load your historical CSV</div>
-    <div class="hint">Needs a <b>Date</b> column + one or more ticker columns + <b>SPY</b> column for the benchmark</div>
+    <div class="hint">Needs a <b>Date</b> column + tickers + <b>SPY</b> and <b>QQQ</b> columns</div>
     <input type="file" id="file" accept=".csv,.tsv,.txt,text/*" style="display:none" />
   </div>
   <div class="fileInfo" id="fileInfo" style="display:none">
@@ -146,9 +147,9 @@
       <label>Basket Size</label>
       <select id="basketN">
         <option value="5">Top 5</option>
-        <option value="10" selected>Top 10</option>
+        <option value="10">Top 10</option>
         <option value="20">Top 20</option>
-        <option value="30">Top 30</option>
+        <option value="30" selected>Top 30</option>
       </select>
     </div>
     <div>
@@ -165,8 +166,12 @@
       </select>
     </div>
     <div>
-      <label>Benchmark Ticker</label>
+      <label>Primary Benchmark</label>
       <input id="benchmark" value="SPY" />
+    </div>
+    <div>
+      <label>Secondary Benchmark</label>
+      <input id="benchmark2" value="QQQ" />
     </div>
   </div>
 
@@ -190,7 +195,7 @@
 <div class="panel" id="scoringPanel" style="display:none">
   <h3>🏆 Relative Strength Ranking</h3>
   <div style="font-size:12px;color:var(--muted);margin-bottom:12px;">
-    Only tickers ABOVE their MA and BEATING the benchmark over 12 months are eligible. Ranked by relative strength.
+    Only tickers above MA and beating the primary benchmark over 12 months are eligible.
   </div>
   <table>
     <thead><tr>
@@ -208,7 +213,7 @@
 </div>
 
 <div class="panel" id="rosterPanel" style="display:none">
-  <h3>🗂️ Basket Roster — Last 12 Months</h3>
+  <h3>🗂️ Basket Roster — Last 36 Months</h3>
   <div class="roster" id="rosterBody"></div>
 </div>
 
@@ -227,7 +232,6 @@
 </div>
 
 <script>
-/* ============== STATE ============== */
 let parsed = null;
 let selected = new Set();
 let scores = {};
@@ -243,11 +247,10 @@ function nameBasket(dateSeed) {
   return `${months[d.getUTCMonth()]} ${d.getUTCFullYear()}`;
 }
 
-function getBenchmark() {
-  return ($("benchmark")?.value || "SPY").trim().toUpperCase();
-}
+function getBenchmark() { return ($("benchmark")?.value || "SPY").trim().toUpperCase(); }
+function getBenchmark2() { return ($("benchmark2")?.value || "QQQ").trim().toUpperCase(); }
 
-/* ============== FILE ============== */
+/* ===== FILE ===== */
 const dropEl = $("drop"), fileEl = $("file"), infoEl = $("fileInfo");
 const nameEl = $("fileName"), metaEl = $("fileMeta"), clearEl = $("clearFile");
 
@@ -308,7 +311,7 @@ function loadParsed(p) {
   tickerCache = null;
   computeAllScores();
   const passing = Object.entries(scores).filter(([, s]) => !s.filtered).sort((a, b) => a[1].rank - b[1].rank);
-  const basketN = +($("basketN")?.value ?? 10);
+  const basketN = +($("basketN")?.value ?? 30);
   selected = new Set(passing.slice(0, basketN).map(([tk]) => tk));
   renderTickers();
   renderScoringTable();
@@ -317,7 +320,7 @@ function loadParsed(p) {
   ["rollingPanel","rosterPanel","historyPanel","summaryPanel"].forEach(id => $(id).style.display = "none");
 }
 
-/* ============== PARSER ============== */
+/* ===== PARSER ===== */
 function parseCSV(text) {
   if (text.charCodeAt(0) === 0xFEFF) text = text.slice(1);
   const lines = text.replace(/\r/g, "").split("\n").filter(l => l.trim().length);
@@ -405,7 +408,7 @@ function toMonthlyFirst(rows) {
   return [...buckets.values()];
 }
 
-/* ============== MA ============== */
+/* ===== MA ===== */
 function computeMA(series, n) {
   const out = []; let sum = 0; const buf = [];
   for (const p of series) {
@@ -426,23 +429,19 @@ function monthsAboveMA(prices, ma) {
   return count;
 }
 
-/* ============== SCORING — relative strength ============== */
+/* ===== SCORING ===== */
 function computeRelativeStrength(prices, spyPrices) {
-  const n = prices.length;
-  const m = spyPrices.length;
   const out = { stock12m: 0, stock6m: 0, stock3m: 0, spy12m: 0, vsSPY: 0, vs6m: 0, vs3m: 0 };
-
+  const n = prices.length, m = spyPrices.length;
   if (n >= 13) out.stock12m = prices[n-1].close / prices[n-13].close - 1;
   if (n >= 7)  out.stock6m  = prices[n-1].close / prices[n-7].close - 1;
   if (n >= 4)  out.stock3m  = prices[n-1].close / prices[n-4].close - 1;
-
   if (m >= 13) out.spy12m = spyPrices[m-1].close / spyPrices[m-13].close - 1;
   if (m >= 7)  out.spy6m  = spyPrices[m-1].close / spyPrices[m-7].close - 1;
   if (m >= 4)  out.spy3m  = spyPrices[m-1].close / spyPrices[m-4].close - 1;
-
   out.vsSPY = out.stock12m - out.spy12m;
-  out.vs6m  = out.stock6m  - (out.spy6m || 0);
-  out.vs3m  = out.stock3m  - (out.spy3m || 0);
+  out.vs6m  = out.stock6m  - out.spy6m;
+  out.vs3m  = out.stock3m  - out.spy3m;
   return out;
 }
 
@@ -452,10 +451,6 @@ function computeAllScores() {
   const uptrendN = +($("uptrendMonths")?.value ?? 0);
   const bench = getBenchmark();
   const benchSeries = parsed.series[bench];
-
-  if (!benchSeries) {
-    $("err").textContent = `⚠️ Benchmark "${bench}" not found in the data. Using absolute 12m return > 0 as the filter.`;
-  }
 
   for (const tk of parsed.tickers) {
     if (tk === bench) continue;
@@ -467,6 +462,13 @@ function computeAllScores() {
     const lastPrice = prices.at(-1).close;
     const lastMA = ma.at(-1);
     const aboveMA = lastMA != null && lastPrice > lastMA;
+
+    // Sanity: reject corrupt columns (price more than 5x or 0.2x its MA)
+    const priceVsMA = lastMA > 0 ? lastPrice / lastMA : 1;
+    if (priceVsMA > 5 || priceVsMA < 0.2) {
+      scores[tk] = { score: -1, rank: 9999, filtered: true, reason: "bad data", stock12m: 0, vsSPY: 0, vs6m: 0, vs3m: 0, dist: 0, monthsAbove: 0 };
+      continue;
+    }
 
     let upAllN = true;
     if (uptrendN > 0) {
@@ -486,9 +488,7 @@ function computeAllScores() {
           return { stock12m: s12, stock6m: s6, stock3m: s3, spy12m: 0, vsSPY: s12, vs6m: s6, vs3m: s3 };
         })();
 
-    const passesBeatBench = rs.vsSPY > 0;
-    const passesFilters = aboveMA && upAllN && passesBeatBench;
-
+    const passesFilters = aboveMA && upAllN && rs.vsSPY > 0;
     const row = {
       stock12m: rs.stock12m, stock6m: rs.stock6m, stock3m: rs.stock3m,
       vsSPY: rs.vsSPY, vs6m: rs.vs6m, vs3m: rs.vs3m,
@@ -502,20 +502,17 @@ function computeAllScores() {
       continue;
     }
 
-    // Score: blended relative strength. Recent windows matter more.
     scores[tk] = { ...row, score: rs.vsSPY * 0.5 + rs.vs6m * 0.3 + rs.vs3m * 0.2 };
   }
 
   const passing = Object.entries(scores).filter(([, s]) => !s.filtered).sort((a, b) => b[1].score - a[1].score);
   passing.forEach(([tk], i) => { scores[tk].rank = i + 1; });
-
   const filtered = Object.entries(scores).filter(([, s]) => s.filtered).sort((a, b) => (b[1].stock12m ?? -1) - (a[1].stock12m ?? -1));
   filtered.forEach(([tk], i) => { scores[tk].rank = 1000 + i; });
-
   parsed.tickers.sort((a, b) => (scores[a]?.rank ?? 9999) - (scores[b]?.rank ?? 9999));
 }
 
-/* ============== TICKERS ============== */
+/* ===== TICKERS ===== */
 function renderTickers() {
   const row = $("tickerRow");
   row.innerHTML = "";
@@ -559,7 +556,7 @@ document.querySelectorAll(".maRow button").forEach(b => {
     if (parsed) { computeAllScores(); renderTickers(); renderScoringTable(); }
   });
 });
-["uptrendMonths","benchmark"].forEach(id => {
+["uptrendMonths","benchmark","benchmark2"].forEach(id => {
   $(id).addEventListener("change", () => {
     if (!parsed) return;
     computeAllScores(); renderTickers(); renderScoringTable();
@@ -568,7 +565,7 @@ document.querySelectorAll(".maRow button").forEach(b => {
 });
 $("basketN").addEventListener("change", () => { if (parsed) $("autoPick").click(); });
 
-/* ============== SCORING TABLE ============== */
+/* ===== SCORING TABLE ===== */
 function renderScoringTable() {
   const tbody = $("scoringBody");
   if (!tbody) return;
@@ -611,7 +608,7 @@ function renderScoringTable() {
   });
 }
 
-/* ============== PLAN ============== */
+/* ===== PLAN ===== */
 function generatePlan(selectedArr, amount, maLen) {
   const plan = [];
   let latestDate = null;
@@ -636,7 +633,7 @@ function generatePlan(selectedArr, amount, maLen) {
   return { rows: plan, asOf: latestDate };
 }
 
-/* ============== HISTORICAL ============== */
+/* ===== HISTORICAL ===== */
 function buildTickerCache() {
   const cache = {};
   for (const tk of parsed.tickers) {
@@ -671,6 +668,9 @@ function pickBasketAsOf(asOfDate, n, maLen, uptrendN) {
     const lastMA = ma.at(-1);
     if (lastMA == null || lastPrice <= lastMA) continue;
 
+    const priceVsMA = lastPrice / lastMA;
+    if (priceVsMA > 5 || priceVsMA < 0.2) continue;
+
     if (uptrendN > 0) {
       let upAllN = true;
       for (let j = upTo.length - uptrendN; j < upTo.length; j++) {
@@ -680,7 +680,6 @@ function pickBasketAsOf(asOfDate, n, maLen, uptrendN) {
       if (!upAllN) continue;
     }
 
-    // Compute relative strength up to asOf
     let spyUpTo = null;
     if (benchT) {
       const bIdx = benchT.map[asOfKey];
@@ -713,8 +712,10 @@ function historicalBaskets(n, maLen, uptrendN, holdMonths) {
   const step = Math.max(1, holdMonths || 1);
   const latestKey = timeline[timeline.length - 1].toISOString().slice(0,10);
   const bench = getBenchmark();
+  const bench2 = getBenchmark2();
+  const LOOKBACK = 36;
 
-  for (let i = Math.max(maLen + 5, timeline.length - 13); i < timeline.length - 1; i += step) {
+  for (let i = Math.max(maLen + 5, timeline.length - LOOKBACK); i < timeline.length - 1; i += step) {
     const asOf = timeline[i];
     const asOfKey = asOf.toISOString().slice(0,10);
 
@@ -733,19 +734,21 @@ function historicalBaskets(n, maLen, uptrendN, holdMonths) {
     if (rets.length === 0) continue;
     const basketRet = rets.reduce((s, r) => s + r, 0) / rets.length;
 
-    let benchmarkRet = null;
-    if (tickerCache[bench]) {
-      const t = tickerCache[bench];
+    const benchReturn = (sym) => {
+      if (!tickerCache[sym]) return null;
+      const t = tickerCache[sym];
       const iStart = t.map[asOfKey];
       const iEnd = t.map[latestKey];
-      if (iStart != null && iEnd != null && iStart !== iEnd) {
-        benchmarkRet = t.series[iEnd].close / t.series[iStart].close - 1;
-      }
-    }
+      if (iStart == null || iEnd == null || iStart === iEnd) return null;
+      return t.series[iEnd].close / t.series[iStart].close - 1;
+    };
 
     out.push({
       asOf, latestDate: timeline[timeline.length - 1],
-      topN, basketRet, benchmarkRet,
+      topN, basketRet,
+      benchmarkRet: benchReturn(bench),
+      benchmark2Ret: benchReturn(bench2),
+      benchmarkName: bench, benchmark2Name: bench2,
       ageMonths: timeline.length - 1 - i,
       name: nameBasket(asOf)
     });
@@ -753,7 +756,7 @@ function historicalBaskets(n, maLen, uptrendN, holdMonths) {
   return out;
 }
 
-/* ============== RUN ============== */
+/* ===== RUN ===== */
 $("run").addEventListener("click", () => {
   $("err").textContent = "";
   if (!parsed) { $("err").textContent = "❌ Load a file first"; return; }
@@ -782,18 +785,13 @@ $("run").addEventListener("click", () => {
     renderSummary(rows, asOf, amount, thisMonthName);
     renderBasketPlan(rows, amount);
 
-    try { renderRollingPanel(topN, basketN, thisMonthName); }
-    catch (e) { console.error("Rolling failed:", e); }
+    try { renderRollingPanel(topN, basketN, thisMonthName); } catch (e) { console.error("Rolling failed:", e); }
 
     let history = [];
-    try { history = historicalBaskets(basketN, maLen, uptrendN, holdMonths); }
-    catch (e) { console.error("History failed:", e); }
+    try { history = historicalBaskets(basketN, maLen, uptrendN, holdMonths); } catch (e) { console.error("History failed:", e); }
 
-    try { renderRosterPanel(history, thisMonthName); }
-    catch (e) { console.error("Roster failed:", e); }
-
-    try { renderHistoryPanel(history, thisMonthName); }
-    catch (e) { console.error("History render failed:", e); }
+    try { renderRosterPanel(history, thisMonthName); } catch (e) { console.error("Roster failed:", e); }
+    try { renderHistoryPanel(history, thisMonthName); } catch (e) { console.error("History render failed:", e); }
 
     $("asOfLabel").textContent = `— as of ${asOf.toISOString().slice(0, 10)}`;
   } catch (e) {
@@ -890,21 +888,27 @@ function renderRosterPanel(history, currentName) {
     container.innerHTML = "<div style='color:var(--muted);padding:14px;'>Not enough history. Try loosening filters.</div>";
     return;
   }
-  const bench = getBenchmark();
   const rows = [...history].reverse();
   container.innerHTML = rows.map(r => {
     const cls = r.basketRet >= 0 ? "g" : "r";
     const isCurrent = r.name === currentName;
-    let vsText = "";
+    let vs1 = "", vs2 = "", cls1 = "m", cls2 = "m";
     if (r.benchmarkRet != null) {
       const diff = r.basketRet - r.benchmarkRet;
-      vsText = `${(diff*100 >= 0 ? '+' : '')}${(diff*100).toFixed(1)} pts vs ${bench}`;
+      cls1 = diff >= 0 ? "g" : "r";
+      vs1 = `${(diff*100 >= 0 ? '+' : '')}${(diff*100).toFixed(1)} vs ${r.benchmarkName}`;
+    }
+    if (r.benchmark2Ret != null) {
+      const diff = r.basketRet - r.benchmark2Ret;
+      cls2 = diff >= 0 ? "g" : "r";
+      vs2 = `${(diff*100 >= 0 ? '+' : '')}${(diff*100).toFixed(1)} vs ${r.benchmark2Name}`;
     }
     return `<div class="rosterCard ${isCurrent ? 'current' : ''}">
       <div class="name">${r.name} Basket</div>
       <div class="meta">${r.topN.length} picks · ${r.ageMonths} mo old</div>
       <div class="ret ${cls}">${(r.basketRet*100).toFixed(1)}%</div>
-      <div class="detail">since pick${vsText ? ' · ' + vsText : ''}</div>
+      <div class="detail ${cls1}">${vs1}</div>
+      <div class="detail ${cls2}">${vs2}</div>
       <div class="detail" style="margin-top:6px;">${r.topN.join(" · ")}</div>
     </div>`;
   }).join("");
@@ -916,16 +920,31 @@ function renderHistoryPanel(history, currentName) {
     container.innerHTML = "<div style='color:var(--muted);padding:14px;'>No prior baskets computed.</div>";
     return;
   }
-  const bench = getBenchmark();
   const rows = [...history].reverse();
-  container.innerHTML = rows.map(r => {
+
+  let html = `<div class="histHead">
+    <div>Basket</div><div>Picks</div>
+    <div style="text-align:right;">Return</div>
+    <div style="text-align:right;">vs SPY</div>
+    <div style="text-align:right;">vs QQQ</div>
+    <div style="text-align:right;">Age</div>
+  </div>`;
+
+  html += rows.map(r => {
     const bCls = r.basketRet >= 0 ? "g" : "r";
-    let vsText = "—", vsCls = "m";
+    let vs1 = "—", vs1Cls = "m", vs2 = "—", vs2Cls = "m";
+
     if (r.benchmarkRet != null) {
       const diff = r.basketRet - r.benchmarkRet;
-      vsCls = diff >= 0 ? "g" : "r";
-      vsText = (diff >= 0 ? "+" : "") + (diff*100).toFixed(1) + " pts";
+      vs1Cls = diff >= 0 ? "g" : "r";
+      vs1 = (diff >= 0 ? "+" : "") + (diff*100).toFixed(1) + " pts";
     }
+    if (r.benchmark2Ret != null) {
+      const diff = r.basketRet - r.benchmark2Ret;
+      vs2Cls = diff >= 0 ? "g" : "r";
+      vs2 = (diff >= 0 ? "+" : "") + (diff*100).toFixed(1) + " pts";
+    }
+
     const isCurrent = r.name === currentName;
     return `<div class="histRow">
       <div>
@@ -934,10 +953,13 @@ function renderHistoryPanel(history, currentName) {
       </div>
       <div class="histPicks"><b>${r.topN.join(" · ")}</b></div>
       <div class="histResult ${bCls}">${(r.basketRet*100).toFixed(1)}%</div>
-      <div class="histVs ${vsCls}">${vsText}</div>
+      <div class="histVs ${vs1Cls}">${vs1}</div>
+      <div class="histVs ${vs2Cls}">${vs2}</div>
       <div class="histDays">${r.latestDate.toISOString().slice(0,10)}</div>
     </div>`;
   }).join("");
+
+  container.innerHTML = html;
 }
 
 function renderSummary(rows, asOf, amount, basketName) {
@@ -981,7 +1003,7 @@ function renderBasketPlan(rows, amount) {
   box.style.display = "";
 }
 
-/* ============== SAVE / LOAD ============== */
+/* ===== SAVE / LOAD ===== */
 $("saveSel").addEventListener("click", () => {
   if (!parsed) { alert("Load data first"); return; }
   const payload = {
@@ -992,6 +1014,7 @@ $("saveSel").addEventListener("click", () => {
     uptrendMonths: +$("uptrendMonths").value,
     basketN: +$("basketN").value,
     benchmark: $("benchmark").value,
+    benchmark2: $("benchmark2").value,
     holdMode: +$("holdMode").value,
   };
   const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
@@ -1014,6 +1037,7 @@ $("loadSelFile").addEventListener("change", e => {
       if (data.uptrendMonths != null) $("uptrendMonths").value = data.uptrendMonths;
       if (data.basketN) $("basketN").value = data.basketN;
       if (data.benchmark) $("benchmark").value = data.benchmark;
+      if (data.benchmark2) $("benchmark2").value = data.benchmark2;
       if (data.holdMode) $("holdMode").value = data.holdMode;
       if (Array.isArray(data.tickers) && parsed) {
         const valid = data.tickers.filter(tk => parsed.tickers.includes(tk));
