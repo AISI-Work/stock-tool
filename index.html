@@ -1,0 +1,1100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Monthly Action Plan — v3</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<style>
+  :root { --bg:#0e1117; --panel:#161b22; --line:#2a3038; --txt:#e6edf3; --muted:#8b949e; --accent:#58a6ff; --green:#3fb950; --red:#f85149; --amber:#d29922; --purple:#a371f7; --cyan:#39c5cf; }
+  * { box-sizing: border-box; }
+  body { margin:0; font-family: -apple-system, "Segoe UI", Roboto, sans-serif; background: var(--bg); color: var(--txt); padding: 24px; }
+  h1 { margin: 0 0 4px; font-size: 22px; }
+  h3 { margin: 0 0 12px; font-size: 15px; }
+  .sub { color: var(--muted); font-size: 13px; margin-bottom: 20px; }
+  .panel { background: var(--panel); border:1px solid var(--line); border-radius: 10px; padding: 18px; margin-bottom: 18px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; }
+  label { display:block; font-size: 12px; color: var(--muted); margin-bottom: 4px; }
+  input, textarea, select { width:100%; padding:8px 10px; background:#0d1117; color:var(--txt); border:1px solid var(--line); border-radius:6px; font-size:13px; font-family: monospace; }
+  textarea { min-height: 100px; resize: vertical; white-space: pre; overflow-wrap: normal; overflow-x: auto; }
+  button { padding:9px 20px; background: var(--accent); color:#0d1117; border:none; border-radius:6px; font-weight:600; font-size:13px; cursor:pointer; margin-right:6px; margin-top:10px; }
+  button.ghost { background: transparent; border:1px solid var(--line); color:var(--txt); }
+  button.ghost:hover { border-color:var(--accent); }
+  button.small { padding:5px 12px; font-size:12px; }
+  table { width:100%; border-collapse: collapse; font-size: 13px; }
+  th, td { padding:8px 10px; text-align:left; border-bottom:1px solid var(--line); }
+  th { color: var(--muted); font-weight:500; font-size:11px; text-transform:uppercase; letter-spacing:.4px; white-space:nowrap; }
+  td.num { text-align:right; font-variant-numeric: tabular-nums; }
+  th.num { text-align:right; }
+  .g { color: var(--green); } .r { color: var(--red); } .m { color: var(--muted); } .a { color: var(--amber); } .c { color: var(--cyan); }
+  .err { color: var(--red); font-size: 13px; margin-top: 10px; }
+  .ok  { color: var(--green); font-size: 13px; margin-top: 10px; }
+  canvas { max-height: 420px; }
+  .drop { border: 2px dashed var(--line); border-radius: 10px; padding: 32px 22px; text-align: center; cursor: pointer; transition: .15s; background: #0d1117; }
+  .drop:hover, .drop.over { border-color: var(--accent); background: #0d1117ee; }
+  .drop .icon { font-size: 36px; line-height: 1; margin-bottom: 8px; }
+  .drop .title { font-size: 15px; font-weight: 600; margin-bottom: 6px; }
+  .drop .hint  { font-size: 12px; color: var(--muted); }
+  .fileInfo { display:flex; align-items:center; gap:14px; background:#0d1117; border:1px solid var(--line); border-radius:8px; padding:12px 14px; margin-top:14px; }
+  .fileInfo .name { font-weight:600; font-size:14px; }
+  .fileInfo .meta { font-size:12px; color:var(--muted); }
+  .fileInfo .clear { margin-left:auto; background:transparent; border:1px solid var(--line); color:var(--muted); padding:5px 12px; font-size:12px; border-radius:6px; cursor:pointer; }
+  .fileInfo .clear:hover { color:var(--red); border-color:var(--red); }
+  .chipRow { display:flex; flex-wrap:wrap; gap:8px; margin-top:10px; }
+  .chip { padding:6px 12px; background:#0d1117; border:1px solid var(--line); border-radius:20px; font-size:12px; cursor:pointer; color:var(--muted); user-select:none; position:relative; }
+  .chip:hover { border-color:var(--accent); color:var(--txt); }
+  .chip.active { background:var(--accent); color:#0d1117; border-color:var(--accent); font-weight:600; }
+  .chip .rank { display:inline-block; background:#0d1117; color:var(--amber); font-weight:700; border-radius:8px; padding:0 6px; margin-left:6px; font-size:10px; }
+  .chip.active .rank { background:#0d1117; color:var(--amber); }
+  .chip.filtered { opacity: .4; text-decoration: line-through; }
+  .maRow { display:flex; gap:6px; margin-top:6px; flex-wrap:wrap; }
+  .maRow button { padding:5px 14px; font-size:12px; margin:0; background:#0d1117; border:1px solid var(--line); color:var(--muted); font-weight:500; }
+  .maRow button.active { background:var(--accent); color:#0d1117; border-color:var(--accent); font-weight:600; }
+  .badge { display:inline-block; padding:3px 10px; border-radius:12px; font-size:11px; font-weight:600; }
+  .badge.BUY   { background: #0d2818; color: var(--green); border:1px solid var(--green); }
+  .badge.SELL  { background: #2b0f0f; color: var(--red);   border:1px solid var(--red); }
+  .badge.HOLD  { background: #1a1a1a; color: var(--muted); border:1px solid var(--line); }
+  .badge.REBUY { background: #0d2030; color: var(--cyan);  border:1px solid var(--cyan); }
+  .summary { display:grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap:12px; margin-bottom:14px; }
+  .summaryCard { background:#0d1117; border:1px solid var(--line); border-radius:8px; padding:12px; }
+  .summaryCard .k { font-size:10px; color:var(--muted); text-transform:uppercase; letter-spacing:.4px; }
+  .summaryCard .v { font-size:18px; font-weight:700; margin-top:4px; }
+  .basketPlan { background:#0d1117; border:1px solid var(--amber); border-radius:8px; padding:14px; margin-top:14px; }
+  .basketPlan h4 { margin: 0 0 10px; font-size:14px; color: var(--amber); }
+  .toolbar { display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin-top:10px; }
+  .toolbar button { margin-top: 0; }
+  .scoreBar { display:inline-block; height:6px; background:var(--accent); border-radius:3px; vertical-align:middle; margin-left:6px; }
+  .rollingGrid { display:grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap:12px; margin-bottom:16px; }
+  .rollingCard { background:#0d1117; border:1px solid var(--line); border-radius:8px; padding:14px; }
+  .rollingCard .period { font-size:11px; color:var(--muted); text-transform:uppercase; letter-spacing:.4px; margin-bottom:6px; }
+  .rollingCard .ret { font-size:26px; font-weight:700; }
+  .rollingCard .detail { font-size:11px; color:var(--muted); margin-top:4px; line-height:1.5; }
+  .badge2 { display:inline-block; padding:1px 6px; border-radius:6px; font-size:10px; background:#0d1117; border:1px solid var(--line); color:var(--muted); margin-left:4px; }
+  .histRow { padding:14px; border-bottom:1px solid var(--line); display:grid; grid-template-columns: 130px 1fr 110px 110px 90px; gap:14px; align-items:center; }
+  .histRow:last-child { border-bottom:none; }
+  .histMonth { font-weight:700; color:var(--accent); font-size:14px; }
+  .histMonthSub { font-size:11px; color: var(--muted); font-weight: 400; margin-top: 2px; }
+  .histPicks { font-size:12px; color: var(--muted); line-height: 1.5; }
+  .histPicks b { color: var(--txt); }
+  .histResult { font-weight:700; font-size:15px; text-align:right; }
+  .histVs { text-align:right; font-size:12px; color: var(--muted); }
+  .histDays { text-align:right; font-size:11px; color: var(--muted); }
+  .roster { display:grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap:12px; }
+  .rosterCard { background:#0d1117; border:1px solid var(--line); border-radius:8px; padding:14px; }
+  .rosterCard.current { border-color: var(--amber); }
+  .rosterCard .name { font-size:15px; font-weight:700; color: var(--accent); }
+  .rosterCard.current .name { color: var(--amber); }
+  .rosterCard .meta { font-size:11px; color: var(--muted); margin-top:4px; }
+  .rosterCard .ret { font-size:20px; font-weight:700; margin-top:8px; }
+  .rosterCard .detail { font-size:11px; color: var(--muted); margin-top: 4px; }
+  .actionRow { padding:14px; border-bottom:1px solid var(--line); }
+  .actionRow:last-child { border-bottom: none; }
+  .actionHeader { display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; }
+  .actionTitle { font-size:15px; font-weight:700; }
+  .actionDetail { font-size:12px; color: var(--muted); margin:4px 0; }
+  .actionDetail b { color: var(--txt); }
+</style>
+</head>
+<body>
+
+<h1>📋 Monthly Action Plan — v3</h1>
+<div class="sub">MA filter · distance-from-MA score · months-above counter · hold-N-months mode</div>
+
+<div class="panel">
+  <div class="drop" id="drop">
+    <div class="icon">📄</div>
+    <div class="title">Load your historical CSV</div>
+    <div class="hint">Needs a <b>Date</b> column + one or more ticker columns</div>
+    <input type="file" id="file" accept=".csv,.tsv,.txt,text/*" style="display:none" />
+  </div>
+  <div class="fileInfo" id="fileInfo" style="display:none">
+    <div>
+      <div class="name" id="fileName">—</div>
+      <div class="meta" id="fileMeta">—</div>
+    </div>
+    <button class="clear" id="clearFile">Remove</button>
+  </div>
+  <details style="margin-top:12px;">
+    <summary style="cursor:pointer;color:var(--muted);font-size:12px;">▸ Or paste data manually</summary>
+    <textarea id="pasteBox"></textarea>
+    <button id="parse" class="ghost">Parse Pasted Data</button>
+  </details>
+  <div class="err" id="err"></div>
+  <div class="ok" id="okMsg"></div>
+</div>
+
+<div class="panel" id="pickerPanel" style="display:none">
+  <h3>1. Filters &amp; Selection</h3>
+  <div class="grid">
+    <div>
+      <label>MA Length (months)</label>
+      <input id="maLen" type="number" value="20" />
+      <div class="maRow">
+        <button data-ma="10">10</button>
+        <button data-ma="20" class="active">20</button>
+        <button data-ma="30">30</button>
+        <button data-ma="40">40</button>
+        <button data-ma="50">50</button>
+      </div>
+    </div>
+    <div>
+      <label>Uptrend Filter</label>
+      <select id="uptrendMonths">
+        <option value="0">Off</option>
+        <option value="1">Last 1 month up</option>
+        <option value="2">Last 2 months up</option>
+        <option value="3" selected>Last 3 months up</option>
+        <option value="6">Last 6 months up</option>
+      </select>
+    </div>
+    <div>
+      <label>Basket Size</label>
+      <select id="basketN">
+        <option value="5">Top 5</option>
+        <option value="10" selected>Top 10</option>
+        <option value="20">Top 20</option>
+        <option value="30">Top 30</option>
+      </select>
+    </div>
+    <div>
+      <label>Monthly Total Buy ($)</label>
+      <input id="amount" type="number" value="500" />
+    </div>
+    <div>
+      <label>Hold Mode</label>
+      <select id="holdMode">
+        <option value="1" selected>Re-pick every month</option>
+        <option value="3">Pick once, hold 3 months</option>
+        <option value="6">Pick once, hold 6 months</option>
+        <option value="12">Pick once, hold 12 months</option>
+      </select>
+    </div>
+    <div>
+      <label>Score Weighting</label>
+      <select id="scoreMode">
+        <option value="balanced" selected>Balanced</option>
+        <option value="fresh">Fresh crossovers</option>
+        <option value="momentum">Momentum</option>
+        <option value="quality">Quality</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="toolbar" style="margin-top:14px;">
+    <button class="small" id="selectAll">✓ Select All</button>
+    <button class="small ghost" id="deselectAll">✗ Deselect All</button>
+    <button class="small ghost" id="invertSel">↺ Invert</button>
+    <button class="small" id="autoPick">🎯 Auto-pick Top N</button>
+    <span style="color:var(--muted);font-size:12px;margin-left:auto;">Selected: <b id="selCount" style="color:var(--accent);">0</b></span>
+  </div>
+
+  <div class="chipRow" id="tickerRow"></div>
+
+  <button id="run">Generate Plan + Analysis</button>
+  <button id="exportPlan" class="ghost">Export Plan CSV</button>
+  <button id="saveSel" class="ghost">💾 Save Selection</button>
+  <button id="loadSel" class="ghost">📂 Load Selection</button>
+  <input type="file" id="loadSelFile" accept=".json" style="display:none" />
+</div>
+
+<div class="panel" id="scoringPanel" style="display:none">
+  <h3>🏆 Ticker Scoring</h3>
+  <table>
+    <thead><tr>
+      <th>#</th><th>Ticker</th><th class="num">Score</th>
+      <th class="num">% above MA</th><th class="num">Mo. above</th>
+      <th class="num">CAGR</th><th class="num">Sharpe</th><th class="num">Max DD</th><th></th>
+    </tr></thead>
+    <tbody id="scoringBody"></tbody>
+  </table>
+</div>
+
+<div class="panel" id="rollingPanel" style="display:none">
+  <h3>📈 <span id="rollingTitle">Basket</span> — Trailing Returns</h3>
+  <div class="rollingGrid" id="rollingGrid"></div>
+  <div style="position:relative;height:340px;"><canvas id="rollingChart"></canvas></div>
+</div>
+
+<div class="panel" id="rosterPanel" style="display:none">
+  <h3>🗂️ Basket Roster — Last 12 Months</h3>
+  <div class="roster" id="rosterBody"></div>
+</div>
+
+<div class="panel" id="historyPanel" style="display:none">
+  <h3>📅 Forward Performance — Detail</h3>
+  <div id="historyBody"></div>
+</div>
+
+<div class="panel" id="summaryPanel" style="display:none">
+  <h3>📌 This Month's Instructions <span id="asOfLabel" style="font-size:12px;color:var(--muted);font-weight:400;"></span></h3>
+  <div class="summary" id="summaryBoxes"></div>
+  <div class="basketPlan" id="basketPlanBox" style="display:none">
+    <h4>💰 Basket Allocation This Month</h4>
+    <div id="basketPlanBody"></div>
+  </div>
+</div>
+
+<script>
+/* ============== STATE ============== */
+let parsed = null;
+let selected = new Set();
+let scores = {};
+let lastPlan = null;
+let rollingChart = null;
+let tickerCache = null;
+
+const $ = id => document.getElementById(id);
+
+function nameBasket(dateSeed) {
+  const d = new Date(dateSeed);
+  const months = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+  return `${months[d.getUTCMonth()]} ${d.getUTCFullYear()}`;
+}
+
+/* ============== FILE ============== */
+const dropEl = $("drop"), fileEl = $("file"), infoEl = $("fileInfo");
+const nameEl = $("fileName"), metaEl = $("fileMeta"), clearEl = $("clearFile");
+
+dropEl.addEventListener("click", () => fileEl.click());
+dropEl.addEventListener("dragover", e => { e.preventDefault(); dropEl.classList.add("over"); });
+dropEl.addEventListener("dragleave", () => dropEl.classList.remove("over"));
+dropEl.addEventListener("drop", e => {
+  e.preventDefault(); dropEl.classList.remove("over");
+  if (e.dataTransfer.files.length) handleFile(e.dataTransfer.files[0]);
+});
+fileEl.addEventListener("change", e => { if (e.target.files.length) handleFile(e.target.files[0]); });
+clearEl.addEventListener("click", () => {
+  parsed = null; selected = new Set(); scores = {}; tickerCache = null; fileEl.value = "";
+  infoEl.style.display = "none"; dropEl.style.display = "";
+  ["pickerPanel","scoringPanel","rollingPanel","rosterPanel","historyPanel","summaryPanel"].forEach(id => $(id).style.display = "none");
+  $("err").textContent = ""; $("okMsg").textContent = "";
+});
+
+function handleFile(file) {
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      loadParsed(parseCSV(e.target.result));
+      nameEl.textContent = file.name;
+      const firstDate = parsed.series[parsed.tickers[0]][0].date.toISOString().slice(0,10);
+      const lastDate = parsed.series[parsed.tickers[0]].at(-1).date.toISOString().slice(0,10);
+      metaEl.innerHTML = `${parsed.tickers.length} tickers · ${parsed.series[parsed.tickers[0]].length} months · <b>${parsed.freq}</b> · ${firstDate} → ${lastDate}`;
+      infoEl.style.display = "flex";
+      dropEl.style.display = "none";
+      $("okMsg").textContent = `✅ Loaded & scored ${parsed.tickers.length} tickers`;
+    } catch (err) {
+      parsed = null;
+      infoEl.style.display = "none"; dropEl.style.display = "";
+      $("pickerPanel").style.display = "none"; $("scoringPanel").style.display = "none";
+      $("err").textContent = "❌ " + err.message;
+      console.error(err);
+    }
+  };
+  reader.readAsText(file);
+}
+
+$("parse").addEventListener("click", () => {
+  $("err").textContent = ""; $("okMsg").textContent = "";
+  const text = $("pasteBox").value;
+  if (!text.trim()) { $("err").textContent = "❌ Paste data first"; return; }
+  try {
+    loadParsed(parseCSV(text));
+    $("okMsg").textContent = `✅ Parsed & scored ${parsed.tickers.length} tickers`;
+  } catch (e) {
+    parsed = null;
+    $("pickerPanel").style.display = "none"; $("scoringPanel").style.display = "none";
+    $("err").textContent = "❌ " + e.message;
+  }
+});
+
+function loadParsed(p) {
+  parsed = p;
+  tickerCache = null;
+  computeAllScores();
+  const passing = Object.entries(scores).filter(([, s]) => !s.filtered).sort((a, b) => b[1].score - a[1].score);
+  const basketN = +($("basketN")?.value ?? 10);
+  selected = new Set(passing.slice(0, basketN).map(([tk]) => tk));
+  renderTickers();
+  renderScoringTable();
+  $("pickerPanel").style.display = "";
+  $("scoringPanel").style.display = "";
+  ["rollingPanel","rosterPanel","historyPanel","summaryPanel"].forEach(id => $(id).style.display = "none");
+}
+
+/* ============== PARSER ============== */
+function parseCSV(text) {
+  if (text.charCodeAt(0) === 0xFEFF) text = text.slice(1);
+  const lines = text.replace(/\r/g, "").split("\n").filter(l => l.trim().length);
+  if (lines.length < 3) throw new Error("Need at least 3 lines");
+  const headerLine = lines[0];
+  const candidates = [{ re: "\t" }, { re: "," }, { re: ";" }, { re: /\s{2,}/ }, { re: /\s+/ }];
+  let best = null;
+  for (const c of candidates) {
+    const parts = headerLine.split(c.re).map(s => s.trim().replace(/^"|"$/g, ""));
+    if (!best || parts.length > best.parts.length) best = { ...c, parts };
+  }
+  if (best.parts.length < 2) throw new Error("Only 1 column detected");
+  const dateIdx = best.parts.findIndex(h => /date/i.test(h.trim()));
+  if (dateIdx === -1) throw new Error("No 'Date' column");
+  const tickers = best.parts.map((h, i) => i === dateIdx ? null : h.trim()).filter(Boolean);
+  const splitRow = line => line.split(best.re).map(s => s.trim().replace(/^"|"$/g, ""));
+  const rawRows = [];
+  for (let i = 1; i < lines.length; i++) {
+    const cols = splitRow(lines[i]);
+    const date = parseDate(cols[dateIdx]);
+    if (!date) continue;
+    const values = {}; let anyValid = false;
+    tickers.forEach(tk => {
+      const idx = best.parts.indexOf(tk);
+      const raw = cols[idx];
+      if (raw == null || raw === "") return;
+      const v = parseFloat(String(raw).replace(/[$, ]/g, ""));
+      if (isFinite(v) && v > 0) { values[tk] = v; anyValid = true; }
+    });
+    if (anyValid) rawRows.push({ date, values });
+  }
+  if (rawRows.length < 12) throw new Error(`Only ${rawRows.length} valid rows`);
+  rawRows.sort((a, b) => a.date - b.date);
+  const deduped = []; let prev = "";
+  for (const r of rawRows) {
+    const k = r.date.toISOString().slice(0, 10);
+    if (k === prev) deduped[deduped.length - 1] = r;
+    else { deduped.push(r); prev = k; }
+  }
+  const freq = detectFrequency(deduped);
+  const series = {};
+  for (const tk of tickers) {
+    const rows = deduped.filter(r => r.values[tk] != null).map(r => ({ date: r.date, close: r.values[tk] }));
+    if (rows.length < 12) continue;
+    series[tk] = freq === "monthly" ? rows : toMonthlyFirst(rows);
+  }
+  const finalTickers = Object.keys(series);
+  if (finalTickers.length === 0) throw new Error("No ticker had enough data");
+  return { tickers: finalTickers, series, freq };
+}
+
+function parseDate(str) {
+  if (!str) return null;
+  str = String(str).trim().replace(/^"|"$/g, "");
+  if (/^\d{4}-\d{2}-\d{2}/.test(str)) { const d = new Date(str); return isNaN(d) ? null : d; }
+  const m = str.match(/^(\d{1,2})[-\/.](\d{1,2})[-\/.](\d{2,4})$/);
+  if (m) {
+    let a = +m[1], b = +m[2], y = +m[3]; if (y < 100) y += 2000;
+    let day, month;
+    if (a > 12) { day = a; month = b; }
+    else if (b > 12) { month = a; day = b; }
+    else { day = a; month = b; }
+    return new Date(y, month - 1, day);
+  }
+  const d = new Date(str); return isNaN(d) ? null : d;
+}
+
+function detectFrequency(rows) {
+  if (rows.length < 3) return "monthly";
+  const gaps = [];
+  for (let i = 1; i < rows.length; i++) gaps.push((rows[i].date - rows[i - 1].date) / 86400000);
+  gaps.sort((a, b) => a - b);
+  const median = gaps[Math.floor(gaps.length / 2)];
+  if (median < 5) return "daily";
+  if (median < 20) return "weekly";
+  return "monthly";
+}
+
+function toMonthlyFirst(rows) {
+  const buckets = new Map();
+  for (const r of rows) {
+    const key = `${r.date.getUTCFullYear()}-${String(r.date.getUTCMonth() + 1).padStart(2, "0")}`;
+    if (!buckets.has(key)) buckets.set(key, r);
+  }
+  return [...buckets.values()];
+}
+
+/* ============== STATS ============== */
+function computeStats(prices) {
+  let shares = 0, invested = 0;
+  const equity = [];
+  for (const p of prices) {
+    shares += 1 / p.close; invested += 1;
+    equity.push({ x: p.date, y: shares * p.close });
+  }
+  const final = equity.at(-1).y;
+  const years = prices.length / 12;
+  const cagr = years > 0 ? Math.pow(final / invested, 1 / years) - 1 : 0;
+  const rets = [];
+  for (let i = 1; i < equity.length; i++) {
+    const a = equity[i - 1].y, b = equity[i].y;
+    if (a > 0) rets.push(b / a - 1);
+  }
+  const mean = rets.reduce((s, r) => s + r, 0) / (rets.length || 1);
+  const variance = rets.reduce((s, r) => s + (r - mean) ** 2, 0) / (rets.length || 1);
+  const vol = Math.sqrt(variance) * Math.sqrt(12);
+  const rf = 0.04;
+  const sharpe = vol > 0 ? (cagr - rf) / vol : 0;
+  const downside = rets.filter(r => r < 0);
+  const downVar = downside.reduce((s, r) => s + r * r, 0) / (downside.length || 1);
+  const downVol = Math.sqrt(downVar) * Math.sqrt(12);
+  const sortino = downVol > 0 ? (cagr - rf) / downVol : 0;
+  let peak = equity[0].y, maxDD = 0;
+  for (const p of equity) {
+    if (p.y > peak) peak = p.y;
+    const dd = (p.y - peak) / peak;
+    if (dd < maxDD) maxDD = dd;
+  }
+  const calmar = maxDD < 0 ? cagr / Math.abs(maxDD) : 0;
+  return { cagr, sharpe, sortino, maxDD, calmar };
+}
+
+function computeMA(series, n) {
+  const out = []; let sum = 0; const buf = [];
+  for (const p of series) {
+    buf.push(p.close); sum += p.close;
+    if (buf.length > n) sum -= buf.shift();
+    out.push(buf.length === n ? sum / n : null);
+  }
+  return out;
+}
+
+function monthsAboveMA(prices, ma) {
+  let count = 0;
+  for (let i = prices.length - 1; i >= 0; i--) {
+    if (ma[i] == null) break;
+    if (prices[i].close > ma[i]) count++;
+    else break;
+  }
+  return count;
+}
+
+function distanceFromMA(prices, ma) {
+  const p = prices.at(-1).close;
+  const m = ma.at(-1);
+  if (m == null || m === 0) return 0;
+  return (p - m) / m;
+}
+
+/* ============== SCORING ============== */
+function scoreMetrics(r, norm, scoreMode) {
+  if (scoreMode === "fresh") {
+    const freshBonus = 1 - norm(r.monthsAbove, "monthsAbove");
+    const distPenalty = Math.abs(r.dist) < 0.15 ? 1 : 0.5;
+    return (0.5 * freshBonus + 0.3 * norm(r.sharpe, "sharpe") + 0.2 * norm(r.cagr, "cagr")) * distPenalty;
+  }
+  if (scoreMode === "momentum") {
+    return 0.5 * norm(r.cagr, "cagr") + 0.3 * norm(r.sharpe, "sharpe") + 0.2 * norm(r.calmar, "calmar");
+  }
+  if (scoreMode === "quality") {
+    return 0.5 * norm(r.sharpe, "sharpe") + 0.3 * norm(r.calmar, "calmar") + 0.2 * norm(r.maxDD, "maxDD");
+  }
+  const freshBonus = 1 - norm(r.monthsAbove, "monthsAbove");
+  const distFit = Math.abs(r.dist) < 0.2 ? 1 - Math.abs(r.dist) : 0.6;
+  return 0.30 * norm(r.sharpe, "sharpe") + 0.25 * norm(r.cagr, "cagr") +
+         0.15 * norm(r.calmar, "calmar") + 0.15 * freshBonus + 0.15 * distFit;
+}
+
+function computeAllScores() {
+  scores = {};
+  const raw = {};
+  const maLen = +($("maLen")?.value ?? 20);
+  const uptrendN = +($("uptrendMonths")?.value ?? 3);
+  const scoreMode = $("scoreMode")?.value ?? "balanced";
+
+  for (const tk of parsed.tickers) {
+    const prices = parsed.series[tk];
+    if (!prices || prices.length < maLen + 5) continue;
+
+    const ma = computeMA(prices, maLen);
+    const lastPrice = prices.at(-1).close;
+    const lastMA = ma.at(-1);
+    const aboveMA = lastMA != null && lastPrice > lastMA;
+
+    let upAllN = true;
+    if (uptrendN > 0) {
+      for (let i = prices.length - uptrendN; i < prices.length; i++) {
+        if (i < 1) { upAllN = false; break; }
+        if (prices[i].close <= prices[i - 1].close) { upAllN = false; break; }
+      }
+    }
+
+    const passesFilters = aboveMA && upAllN;
+    const metrics = computeStats(prices);
+    const dist = aboveMA ? distanceFromMA(prices, ma) : 0;
+    const monthsAbove = monthsAboveMA(prices, ma);
+
+    if (!passesFilters) {
+      scores[tk] = { ...metrics, score: -1, rank: 9999, filtered: true,
+                     reason: !aboveMA ? "below MA" : `down in last ${uptrendN}`,
+                     dist, monthsAbove };
+      continue;
+    }
+    raw[tk] = { ...metrics, dist, monthsAbove };
+  }
+
+  const keys = Object.keys(raw);
+  if (keys.length === 0) {
+    const ranked = Object.entries(scores).sort((a, b) => (b[1].cagr ?? -1) - (a[1].cagr ?? -1));
+    ranked.forEach(([tk], i) => { scores[tk].rank = i + 1; });
+    parsed.tickers.sort((a, b) => (scores[a]?.rank ?? 9999) - (scores[b]?.rank ?? 9999));
+    return;
+  }
+
+  const allMetrics = ["cagr", "sharpe", "sortino", "maxDD", "calmar", "dist", "monthsAbove"];
+  const mins = {}; const maxs = {};
+  for (const k of allMetrics) { mins[k] = Infinity; maxs[k] = -Infinity; }
+  for (const tk of keys) {
+    const r = raw[tk];
+    for (const k of allMetrics) {
+      if (r[k] < mins[k]) mins[k] = r[k];
+      if (r[k] > maxs[k]) maxs[k] = r[k];
+    }
+  }
+  const norm = (v, k) => (maxs[k] === mins[k]) ? 0.5 : (v - mins[k]) / (maxs[k] - mins[k]);
+
+  for (const tk of keys) {
+    scores[tk] = { ...raw[tk], score: scoreMetrics(raw[tk], norm, scoreMode) };
+  }
+
+  const passing = keys.sort((a, b) => scores[b].score - scores[a].score);
+  passing.forEach((tk, i) => { scores[tk].rank = i + 1; });
+
+  const filtered = Object.keys(scores).filter(tk => scores[tk].filtered);
+  filtered.sort((a, b) => (scores[b].cagr ?? -1) - (scores[a].cagr ?? -1));
+  filtered.forEach((tk, i) => { scores[tk].rank = 1000 + i; });
+
+  parsed.tickers.sort((a, b) => (scores[a]?.rank ?? 9999) - (scores[b]?.rank ?? 9999));
+}
+
+/* ============== TICKERS ============== */
+function renderTickers() {
+  const row = $("tickerRow");
+  row.innerHTML = "";
+  parsed.tickers.forEach(tk => {
+    const s = scores[tk];
+    const chip = document.createElement("div");
+    chip.className = "chip" + (selected.has(tk) ? " active" : "") + (s?.filtered ? " filtered" : "");
+    chip.innerHTML = `${tk}${s && !s.filtered ? `<span class="rank">#${s.rank}</span>` : ""}`;
+    chip.title = s?.filtered ? `Filtered: ${s.reason}` : (s ? `Score ${s.score.toFixed(3)}` : "");
+    chip.addEventListener("click", () => {
+      if (selected.has(tk)) selected.delete(tk); else selected.add(tk);
+      renderTickers();
+    });
+    row.appendChild(chip);
+  });
+  $("selCount").textContent = selected.size;
+}
+
+$("selectAll").addEventListener("click", () => { if (parsed) { selected = new Set(parsed.tickers); renderTickers(); } });
+$("deselectAll").addEventListener("click", () => { selected = new Set(); renderTickers(); });
+$("invertSel").addEventListener("click", () => {
+  if (!parsed) return;
+  const next = new Set();
+  for (const tk of parsed.tickers) if (!selected.has(tk)) next.add(tk);
+  selected = next; renderTickers();
+});
+$("autoPick").addEventListener("click", () => {
+  if (!parsed) return;
+  const n = +$("basketN").value;
+  const passing = Object.entries(scores).filter(([, s]) => !s.filtered).sort((a, b) => b[1].score - a[1].score);
+  selected = new Set(passing.slice(0, n).map(([tk]) => tk));
+  renderTickers();
+  $("okMsg").textContent = `✅ Auto-picked top ${Math.min(n, passing.length)} (${passing.length} passed the filter)`;
+});
+
+document.querySelectorAll(".maRow button").forEach(b => {
+  b.addEventListener("click", () => {
+    $("maLen").value = b.dataset.ma;
+    document.querySelectorAll(".maRow button").forEach(x => x.classList.remove("active"));
+    b.classList.add("active");
+    if (parsed) { computeAllScores(); renderTickers(); renderScoringTable(); }
+  });
+});
+["uptrendMonths","scoreMode"].forEach(id => {
+  $(id).addEventListener("change", () => {
+    if (!parsed) return;
+    computeAllScores(); renderTickers(); renderScoringTable();
+    $("okMsg").textContent = `✅ Re-scored`;
+  });
+});
+$("basketN").addEventListener("change", () => { if (parsed) $("autoPick").click(); });
+
+/* ============== SCORING TABLE ============== */
+function renderScoringTable() {
+  const tbody = $("scoringBody");
+  if (!tbody) return;
+  const ranked = Object.entries(scores).sort((a, b) => a[1].rank - b[1].rank);
+  const passingScores = ranked.filter(([,s]) => !s.filtered).map(([,s]) => s.score);
+  const maxScore = passingScores.length ? Math.max(...passingScores) : 1;
+
+  tbody.innerHTML = ranked.slice(0, 50).map(([tk, s]) => {
+    const inSel = selected.has(tk);
+    if (s.filtered) {
+      return `<tr style="opacity:0.35;">
+        <td class="m">—</td>
+        <td><b>${tk}</b> <span class="badge2" style="color:var(--red);border-color:var(--red);">${s.reason}</span></td>
+        <td class="num m">—</td>
+        <td class="num m">—</td><td class="num m">—</td>
+        <td class="num ${s.cagr >= 0 ? 'g' : 'r'}">${(s.cagr*100).toFixed(1)}%</td>
+        <td class="num ${s.sharpe >= 0 ? 'g' : 'r'}">${s.sharpe.toFixed(2)}</td>
+        <td class="num r">${(s.maxDD*100).toFixed(1)}%</td>
+        <td><button class="ghost small" data-tk="${tk}">${inSel ? "✓ In" : "Add"}</button></td>
+      </tr>`;
+    }
+    const barWidth = Math.round(60 * (s.score / maxScore));
+    return `<tr style="${inSel ? 'background:#0d1826;' : ''}">
+      <td><b style="color:var(--muted);">${s.rank}</b></td>
+      <td><b style="color:var(--accent);">${tk}</b></td>
+      <td class="num"><b>${s.score.toFixed(3)}</b><span class="scoreBar" style="width:${barWidth}px;"></span></td>
+      <td class="num">${(s.dist*100).toFixed(1)}%</td>
+      <td class="num">${s.monthsAbove}mo</td>
+      <td class="num ${s.cagr >= 0 ? 'g' : 'r'}">${(s.cagr*100).toFixed(1)}%</td>
+      <td class="num ${s.sharpe >= 0 ? 'g' : 'r'}">${s.sharpe.toFixed(2)}</td>
+      <td class="num r">${(s.maxDD*100).toFixed(1)}%</td>
+      <td><button class="ghost small" data-tk="${tk}">${inSel ? "✓ In" : "Add"}</button></td>
+    </tr>`;
+  }).join("");
+
+  tbody.querySelectorAll("button[data-tk]").forEach(b => {
+    b.addEventListener("click", () => {
+      const tk = b.dataset.tk;
+      if (selected.has(tk)) selected.delete(tk); else selected.add(tk);
+      renderTickers(); renderScoringTable();
+    });
+  });
+}
+
+/* ============== PLAN ============== */
+function generatePlan(selectedArr, amount, maLen) {
+  const plan = [];
+  let latestDate = null;
+  for (const tk of selectedArr) {
+    const series = parsed.series[tk];
+    if (!series) continue;
+    const ma = computeMA(series, maLen);
+    const last = series.at(-1);
+    const lastMA = ma.at(-1);
+    const prev = series.at(-2);
+    const prevMA = ma.at(-2);
+    const lastAboveMA = lastMA != null && last.close > lastMA;
+    const prevAboveMA = prevMA != null && prev.close > prevMA;
+    let action;
+    if (!prevAboveMA && lastAboveMA) action = "REBUY";
+    else if (prevAboveMA && !lastAboveMA) action = "SELL";
+    else if (lastAboveMA) action = "BUY";
+    else action = "HOLD";
+    plan.push({ ticker: tk, lastDate: last.date, lastPrice: last.close, lastMA, action });
+    if (!latestDate || last.date > latestDate) latestDate = last.date;
+  }
+  return { rows: plan, asOf: latestDate };
+}
+
+/* ============== HISTORICAL ============== */
+function buildTickerCache() {
+  const cache = {};
+  for (const tk of parsed.tickers) {
+    const s = parsed.series[tk];
+    if (!s) continue;
+    const map = {};
+    for (let k = 0; k < s.length; k++) {
+      map[s[k].date.toISOString().slice(0,10)] = k;
+    }
+    cache[tk] = { series: s, map };
+  }
+  return cache;
+}
+
+function pickBasketAsOf(asOfDate, n, maLen, uptrendN, scoreMode) {
+  if (!tickerCache) tickerCache = buildTickerCache();
+  const asOfKey = asOfDate.toISOString().slice(0,10);
+  const localScores = {};
+
+  for (const tk of Object.keys(tickerCache)) {
+    const t = tickerCache[tk];
+    const idxEnd = t.map[asOfKey];
+    if (idxEnd == null || idxEnd < maLen + 5) continue;
+    const upTo = t.series.slice(0, idxEnd + 1);
+
+    const ma = computeMA(upTo, maLen);
+    const lastPrice = upTo.at(-1).close;
+    const lastMA = ma.at(-1);
+    if (lastMA == null || lastPrice <= lastMA) continue;
+
+    if (uptrendN > 0) {
+      let upAllN = true;
+      for (let j = upTo.length - uptrendN; j < upTo.length; j++) {
+        if (j < 1) { upAllN = false; break; }
+        if (upTo[j].close <= upTo[j - 1].close) { upAllN = false; break; }
+      }
+      if (!upAllN) continue;
+    }
+
+    localScores[tk] = {
+      ...computeStats(upTo),
+      dist: (lastPrice - lastMA) / lastMA,
+      monthsAbove: monthsAboveMA(upTo, ma)
+    };
+  }
+
+  const keys = Object.keys(localScores);
+  if (keys.length === 0) return [];
+
+  const allMetrics = ["cagr", "sharpe", "sortino", "maxDD", "calmar", "dist", "monthsAbove"];
+  const mins = {}; const maxs = {};
+  for (const k of allMetrics) { mins[k] = Infinity; maxs[k] = -Infinity; }
+  for (const tk of keys) {
+    const r = localScores[tk];
+    for (const k of allMetrics) {
+      if (r[k] < mins[k]) mins[k] = r[k];
+      if (r[k] > maxs[k]) maxs[k] = r[k];
+    }
+  }
+  const norm = (v, k) => (maxs[k] === mins[k]) ? 0.5 : (v - mins[k]) / (maxs[k] - mins[k]);
+
+  const ranked = keys.map(tk => ({
+    tk,
+    score: scoreMetrics(localScores[tk], norm, scoreMode)
+  })).sort((a, b) => b.score - a.score);
+
+  return ranked.slice(0, n).map(x => x.tk);
+}
+
+function historicalBaskets(n, maLen, uptrendN, scoreMode, holdMonths) {
+  if (!tickerCache) tickerCache = buildTickerCache();
+  const anchorTk = parsed.tickers[0];
+  if (!anchorTk || !parsed.series[anchorTk]) return [];
+  const timeline = parsed.series[anchorTk].map(p => p.date);
+  if (timeline.length < maLen + 15) return [];
+  const out = [];
+  const step = Math.max(1, holdMonths || 1);
+  const latestKey = timeline[timeline.length - 1].toISOString().slice(0,10);
+
+  for (let i = Math.max(maLen + 5, timeline.length - 13); i < timeline.length - 1; i += step) {
+    const asOf = timeline[i];
+    const asOfKey = asOf.toISOString().slice(0,10);
+
+    const topN = pickBasketAsOf(asOf, n, maLen, uptrendN, scoreMode);
+    if (topN.length === 0) continue;
+
+    const rets = [];
+    for (const tk of topN) {
+      const t = tickerCache[tk];
+      if (!t) continue;
+      const iStart = t.map[asOfKey];
+      const iEnd = t.map[latestKey];
+      if (iStart == null || iEnd == null || iStart === iEnd) continue;
+      rets.push(t.series[iEnd].close / t.series[iStart].close - 1);
+    }
+    if (rets.length === 0) continue;
+    const basketRet = rets.reduce((s, r) => s + r, 0) / rets.length;
+
+    let benchmarkRet = null;
+    if (tickerCache["SPY"]) {
+      const t = tickerCache["SPY"];
+      const iStart = t.map[asOfKey];
+      const iEnd = t.map[latestKey];
+      if (iStart != null && iEnd != null && iStart !== iEnd) {
+        benchmarkRet = t.series[iEnd].close / t.series[iStart].close - 1;
+      }
+    }
+
+    out.push({
+      asOf, latestDate: timeline[timeline.length - 1],
+      topN, basketRet, benchmarkRet,
+      ageMonths: timeline.length - 1 - i,
+      name: nameBasket(asOf)
+    });
+  }
+  return out;
+}
+
+/* ============== RUN ============== */
+$("run").addEventListener("click", () => {
+  $("err").textContent = "";
+  if (!parsed) { $("err").textContent = "❌ Load a file first"; return; }
+  if (selected.size === 0) { $("err").textContent = "❌ Pick at least one ticker"; return; }
+
+  try {
+    const amount = +$("amount").value;
+    const maLen = +$("maLen").value;
+    const basketN = +$("basketN").value;
+    const uptrendN = +$("uptrendMonths").value;
+    const scoreMode = $("scoreMode").value;
+    const holdMonths = +$("holdMode").value;
+    const selectedArr = [...selected].sort((a, b) => (scores[a]?.rank ?? 999) - (scores[b]?.rank ?? 999));
+
+    const { rows, asOf } = generatePlan(selectedArr, amount, maLen);
+    lastPlan = { rows, asOf, amount, maLen };
+    const thisMonthName = nameBasket(asOf);
+
+    const topN = Object.entries(scores)
+      .filter(([, s]) => !s.filtered)
+      .sort((a, b) => a[1].rank - b[1].rank)
+      .slice(0, basketN)
+      .map(([tk]) => tk);
+
+    ["rollingPanel","rosterPanel","historyPanel","summaryPanel"].forEach(id => $(id).style.display = "");
+
+    renderSummary(rows, asOf, amount, thisMonthName);
+    renderBasketPlan(rows, amount);
+
+    try { renderRollingPanel(topN, basketN, thisMonthName); }
+    catch (e) { console.error("Rolling failed:", e); }
+
+    let history = [];
+    try { history = historicalBaskets(basketN, maLen, uptrendN, scoreMode, holdMonths); }
+    catch (e) { console.error("History failed:", e); }
+
+    try { renderRosterPanel(history, thisMonthName); }
+    catch (e) { console.error("Roster failed:", e); }
+
+    try { renderHistoryPanel(history, thisMonthName); }
+    catch (e) { console.error("History render failed:", e); }
+
+    $("asOfLabel").textContent = `— as of ${asOf.toISOString().slice(0, 10)}`;
+  } catch (e) {
+    $("err").textContent = "❌ " + e.message;
+    console.error(e);
+  }
+});
+
+function renderRollingPanel(topN, n, basketName) {
+  $("rollingTitle").textContent = `${basketName} Basket (Top ${n})`;
+  const grid = $("rollingGrid");
+  const periods = [3, 6, 12, 24];
+  grid.innerHTML = periods.map(p => {
+    const r = basketReturnWindow(topN, p);
+    if (!r) return `<div class="rollingCard"><div class="period">${p} Months</div><div class="ret m">—</div><div class="detail">Not enough history</div></div>`;
+    const cls = r.returnPct >= 0 ? "g" : "r";
+    return `<div class="rollingCard">
+      <div class="period">${p} Months · ${basketName}</div>
+      <div class="ret ${cls}">${(r.returnPct*100).toFixed(1)}%</div>
+      <div class="detail">Equal-weight · ${r.count} tickers</div>
+    </div>`;
+  }).join("");
+
+  const series = rollingReturnSeries(topN, 1);
+  if (rollingChart) rollingChart.destroy();
+  rollingChart = new Chart($("rollingChart"), {
+    type: "line",
+    data: {
+      labels: series.map(p => p.date.toISOString().slice(0, 7)),
+      datasets: [{
+        label: `${basketName} — Monthly Return`,
+        data: series.map(p => p.ret * 100),
+        borderColor: "#58a6ff",
+        backgroundColor: "rgba(88,166,255,0.15)",
+        tension: .15, pointRadius: 0, fill: true,
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { labels: { color: "#e6edf3" } },
+        title: { display: true, text: `${basketName} Basket — month-over-month return`, color: "#e6edf3" } },
+      scales: {
+        x: { ticks: { color: "#8b949e", maxTicksLimit: 12 }, grid: { color: "#2a3038" } },
+        y: { ticks: { color: "#8b949e", callback: v => v.toFixed(1) + "%" }, grid: { color: "#2a3038" } }
+      }
+    }
+  });
+}
+
+function basketReturnWindow(tickers, monthsBack) {
+  const rets = [];
+  let asOfDate = null;
+  for (const tk of tickers) {
+    const series = parsed.series[tk];
+    if (!series || series.length < monthsBack + 1) continue;
+    const today = series.at(-1);
+    const past = series[series.length - 1 - monthsBack];
+    if (!past || !today) continue;
+    rets.push(today.close / past.close - 1);
+    if (!asOfDate || today.date > asOfDate) asOfDate = today.date;
+  }
+  if (rets.length === 0) return null;
+  return { returnPct: rets.reduce((s, r) => s + r, 0) / rets.length, count: rets.length, asOf: asOfDate };
+}
+
+function rollingReturnSeries(tickers, monthWindow) {
+  if (!tickerCache) tickerCache = buildTickerCache();
+  const minLen = Math.min(...tickers.map(tk => tickerCache[tk]?.series.length || 0));
+  const anchorTk = tickers.find(tk => tickerCache[tk]?.series.length === minLen) || tickers[0];
+  if (!tickerCache[anchorTk]) return [];
+  const timeline = tickerCache[anchorTk].series.map(p => p.date);
+  const out = [];
+  for (let i = monthWindow; i < timeline.length; i++) {
+    const tNow = timeline[i], tPast = timeline[i - monthWindow];
+    const nowKey = tNow.toISOString().slice(0,10);
+    const pastKey = tPast.toISOString().slice(0,10);
+    const rets = [];
+    for (const tk of tickers) {
+      const t = tickerCache[tk];
+      if (!t) continue;
+      const iN = t.map[nowKey], iP = t.map[pastKey];
+      if (iN == null || iP == null || iN === iP) continue;
+      rets.push(t.series[iN].close / t.series[iP].close - 1);
+    }
+    if (rets.length === 0) continue;
+    out.push({ date: tNow, ret: rets.reduce((s, r) => s + r, 0) / rets.length });
+  }
+  return out;
+}
+
+function renderRosterPanel(history, currentName) {
+  const container = $("rosterBody");
+  if (history.length === 0) {
+    container.innerHTML = "<div style='color:var(--muted);padding:14px;'>Not enough history. Try loosening filters.</div>";
+    return;
+  }
+  const rows = [...history].reverse();
+  container.innerHTML = rows.map(r => {
+    const cls = r.basketRet >= 0 ? "g" : "r";
+    const isCurrent = r.name === currentName;
+    let vsText = "";
+    if (r.benchmarkRet != null) {
+      const diff = r.basketRet - r.benchmarkRet;
+      vsText = `${(diff*100 >= 0 ? '+' : '')}${(diff*100).toFixed(1)} pts vs SPY`;
+    }
+    return `<div class="rosterCard ${isCurrent ? 'current' : ''}">
+      <div class="name">${r.name} Basket</div>
+      <div class="meta">${r.topN.length} picks · ${r.ageMonths} mo old</div>
+      <div class="ret ${cls}">${(r.basketRet*100).toFixed(1)}%</div>
+      <div class="detail">since pick${vsText ? ' · ' + vsText : ''}</div>
+      <div class="detail" style="margin-top:6px;">${r.topN.join(" · ")}</div>
+    </div>`;
+  }).join("");
+}
+
+function renderHistoryPanel(history, currentName) {
+  const container = $("historyBody");
+  if (history.length === 0) {
+    container.innerHTML = "<div style='color:var(--muted);padding:14px;'>No prior baskets computed.</div>";
+    return;
+  }
+  const rows = [...history].reverse();
+  container.innerHTML = rows.map(r => {
+    const bCls = r.basketRet >= 0 ? "g" : "r";
+    let vsText = "—", vsCls = "m";
+    if (r.benchmarkRet != null) {
+      const diff = r.basketRet - r.benchmarkRet;
+      vsCls = diff >= 0 ? "g" : "r";
+      vsText = (diff >= 0 ? "+" : "") + (diff*100).toFixed(1) + " pts";
+    }
+    const isCurrent = r.name === currentName;
+    return `<div class="histRow">
+      <div>
+        <div class="histMonth" style="${isCurrent ? 'color:var(--amber);' : ''}">${r.name}</div>
+        <div class="histMonthSub">${isCurrent ? 'current' : r.ageMonths + ' mo old'}</div>
+      </div>
+      <div class="histPicks"><b>${r.topN.join(" · ")}</b></div>
+      <div class="histResult ${bCls}">${(r.basketRet*100).toFixed(1)}%</div>
+      <div class="histVs ${vsCls}">${vsText}</div>
+      <div class="histDays">${r.latestDate.toISOString().slice(0,10)}</div>
+    </div>`;
+  }).join("");
+}
+
+function renderSummary(rows, asOf, amount, basketName) {
+  const buys = rows.filter(r => r.action === "BUY" || r.action === "REBUY");
+  const sells = rows.filter(r => r.action === "SELL");
+  const holds = rows.filter(r => r.action === "HOLD");
+  const boxes = [
+    { k: "Basket", v: basketName, cls: "a" },
+    { k: "To Buy", v: buys.length, cls: "g" },
+    { k: "To Sell", v: sells.length, cls: "r" },
+    { k: "Stay in Cash", v: holds.length, cls: "m" },
+    { k: "Monthly Outlay", v: "$" + amount.toLocaleString(), cls: "c" },
+    { k: "Basket Size", v: selected.size + " tickers", cls: "c" },
+  ];
+  $("summaryBoxes").innerHTML = boxes.map(b =>
+    `<div class="summaryCard"><div class="k">${b.k}</div><div class="v ${b.cls || ""}">${b.v}</div></div>`
+  ).join("");
+}
+
+function renderBasketPlan(rows, amount) {
+  const buys = rows.filter(r => r.action === "BUY" || r.action === "REBUY");
+  const box = $("basketPlanBox");
+  const body = $("basketPlanBody");
+  if (buys.length === 0) { box.style.display = "none"; return; }
+  const perTicker = amount / buys.length;
+  let html = `<div style="font-size:13px;color:var(--muted);margin-bottom:10px;">Contribute <b style="color:var(--txt);">$${amount.toLocaleString()}</b> split evenly across <b style="color:var(--txt);">${buys.length}</b> active tickers. Each gets <b style="color:var(--amber);">$${perTicker.toFixed(2)}</b>.</div>`;
+  html += `<table><thead><tr><th>#</th><th>Ticker</th><th class="num">Action</th><th class="num">Price</th><th class="num">MA</th><th class="num">$ to Buy</th></tr></thead><tbody>`;
+  buys.forEach(r => {
+    const s = scores[r.ticker];
+    const rank = s?.rank ?? "—";
+    html += `<tr><td class="m">#${rank}</td><td><b style="color:var(--accent);">${r.ticker}</b></td>
+      <td class="num"><span class="badge ${r.action}">${r.action}</span></td>
+      <td class="num">$${r.lastPrice.toFixed(2)}</td>
+      <td class="num">${r.lastMA == null ? "—" : "$" + r.lastMA.toFixed(2)}</td>
+      <td class="num"><b>$${perTicker.toFixed(2)}</b></td></tr>`;
+  });
+  html += "</tbody></table>";
+  body.innerHTML = html;
+  box.style.display = "";
+}
+
+/* ============== SAVE / LOAD ============== */
+$("saveSel").addEventListener("click", () => {
+  if (!parsed) { alert("Load data first"); return; }
+  const payload = {
+    savedAt: new Date().toISOString(),
+    tickers: [...selected],
+    amount: +$("amount").value,
+    maLen: +$("maLen").value,
+    uptrendMonths: +$("uptrendMonths").value,
+    basketN: +$("basketN").value,
+    scoreMode: $("scoreMode").value,
+    holdMode: +$("holdMode").value,
+  };
+  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url; a.download = `basket_selection_${new Date().toISOString().slice(0,10)}.json`;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
+  $("okMsg").textContent = `💾 Saved ${selected.size} tickers`;
+});
+
+$("loadSel").addEventListener("click", () => $("loadSelFile").click());
+$("loadSelFile").addEventListener("change", e => {
+  if (!e.target.files.length) return;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    try {
+      const data = JSON.parse(ev.target.result);
+      if (data.amount != null) $("amount").value = data.amount;
+      if (data.maLen != null) $("maLen").value = data.maLen;
+      if (data.uptrendMonths != null) $("uptrendMonths").value = data.uptrendMonths;
+      if (data.basketN) $("basketN").value = data.basketN;
+      if (data.scoreMode) $("scoreMode").value = data.scoreMode;
+      if (data.holdMode) $("holdMode").value = data.holdMode;
+      if (Array.isArray(data.tickers) && parsed) {
+        const valid = data.tickers.filter(tk => parsed.tickers.includes(tk));
+        selected = new Set(valid);
+        renderTickers(); renderScoringTable();
+        $("okMsg").textContent = `📂 Loaded ${valid.length} tickers`;
+      }
+    } catch (err) { $("err").textContent = "❌ Bad JSON: " + err.message; }
+  };
+  reader.readAsText(e.target.files[0]);
+});
+
+$("exportPlan").addEventListener("click", () => {
+  if (!lastPlan) { alert("Generate a plan first"); return; }
+  const rows = lastPlan.rows;
+  const buys = rows.filter(r => r.action === "BUY" || r.action === "REBUY");
+  const perTicker = buys.length > 0 ? lastPlan.amount / buys.length : 0;
+  const basketName = nameBasket(lastPlan.asOf);
+  const header = "basket_name,rank,ticker,action,last_price,ma,dollar_amount,note";
+  const lines = rows.map(r => {
+    const s = scores[r.ticker];
+    const rank = s?.rank ?? "";
+    const amt = (r.action === "BUY" || r.action === "REBUY") ? perTicker.toFixed(2) : "0.00";
+    let note = r.action === "SELL" ? "Sell 100%" : r.action === "REBUY" ? "Rebuy all cash" : r.action === "BUY" ? "Monthly buy" : "Hold cash";
+    return `"${basketName}",${rank},${r.ticker},${r.action},${r.lastPrice.toFixed(2)},${r.lastMA != null ? r.lastMA.toFixed(2) : ""},${amt},"${note}"`;
+  });
+  const csv = [header, ...lines].join("\n");
+  const blob = new Blob([csv], { type: "text/csv" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url; a.download = `${basketName.replace(" ","_")}_action_plan.csv`;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
+});
+</script>
+</body>
+</html>
