@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Monthly Action Plan — v9</title>
+<title>Monthly Action Plan — v10</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <style>
   :root { --bg:#0e1117; --panel:#161b22; --line:#2a3038; --txt:#e6edf3; --muted:#8b949e; --accent:#58a6ff; --green:#3fb950; --red:#f85149; --amber:#d29922; --purple:#a371f7; --cyan:#39c5cf; }
@@ -46,38 +46,20 @@
   .chip.active { background:var(--accent); color:#0d1117; border-color:var(--accent); font-weight:600; }
   .chip .rank { display:inline-block; background:#0d1117; color:var(--amber); font-weight:700; border-radius:8px; padding:0 6px; margin-left:6px; font-size:10px; }
   .chip.active .rank { background:#0d1117; color:var(--amber); }
-  .chip.filtered { opacity: .4; text-decoration: line-through; }
   .maRow { display:flex; gap:6px; margin-top:6px; flex-wrap:wrap; }
   .maRow button { padding:5px 14px; font-size:12px; margin:0; background:#0d1117; border:1px solid var(--line); color:var(--muted); font-weight:500; }
   .maRow button.active { background:var(--accent); color:#0d1117; border-color:var(--accent); font-weight:600; }
   .badge { display:inline-block; padding:3px 10px; border-radius:12px; font-size:11px; font-weight:600; }
-  .badge.BUY   { background: #0d2818; color: var(--green); border:1px solid var(--green); }
-  .badge.SELL  { background: #2b0f0f; color: var(--red);   border:1px solid var(--red); }
-  .badge.HOLD  { background: #1a1a1a; color: var(--muted); border:1px solid var(--line); }
-  .badge.REBUY { background: #0d2030; color: var(--cyan);  border:1px solid var(--cyan); }
+  .badge.BUY { background: #0d2818; color: var(--green); border:1px solid var(--green); }
+  .badge.SELL { background: #2b0f0f; color: var(--red); border:1px solid var(--red); }
+  .badge.HOLD { background: #1a1a1a; color: var(--muted); border:1px solid var(--line); }
   .summary { display:grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap:12px; margin-bottom:14px; }
   .summaryCard { background:#0d1117; border:1px solid var(--line); border-radius:8px; padding:12px; }
   .summaryCard .k { font-size:10px; color:var(--muted); text-transform:uppercase; letter-spacing:.4px; }
   .summaryCard .v { font-size:18px; font-weight:700; margin-top:4px; }
   .basketPlan { background:#0d1117; border:1px solid var(--amber); border-radius:8px; padding:14px; margin-top:14px; }
   .basketPlan h4 { margin: 0 0 10px; font-size:14px; color: var(--amber); }
-  .toolbar { display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin-top:10px; }
-  .toolbar button { margin-top: 0; }
-  .scoreBar { display:inline-block; height:6px; background:var(--accent); border-radius:3px; vertical-align:middle; margin-left:6px; }
-  .rollingGrid { display:grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap:12px; margin-bottom:16px; }
-  .rollingCard { background:#0d1117; border:1px solid var(--line); border-radius:8px; padding:14px; }
-  .rollingCard .period { font-size:11px; color:var(--muted); text-transform:uppercase; letter-spacing:.4px; margin-bottom:6px; }
-  .rollingCard .ret { font-size:26px; font-weight:700; }
-  .rollingCard .detail { font-size:11px; color:var(--muted); margin-top:4px; line-height:1.5; }
-  .badge2 { display:inline-block; padding:1px 6px; border-radius:6px; font-size:10px; background:#0d1117; border:1px solid var(--line); color:var(--muted); margin-left:4px; }
-  .roster { display:grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap:12px; max-height: 800px; overflow-y: auto; padding-right: 6px; }
-  .rosterCard { background:#0d1117; border:1px solid var(--line); border-radius:8px; padding:14px; }
-  .rosterCard.current { border-color: var(--amber); }
-  .rosterCard .name { font-size:15px; font-weight:700; color: var(--accent); }
-  .rosterCard.current .name { color: var(--amber); }
-  .rosterCard .meta { font-size:11px; color: var(--muted); margin-top:4px; }
-  .rosterCard .ret { font-size:20px; font-weight:700; margin-top:8px; }
-  .rosterCard .detail { font-size:11px; color: var(--muted); margin-top: 4px; }
+  .compareTable tr.winner { background: #0d2818; }
   .sectorPill { display:inline-block; padding:1px 6px; border-radius:6px; font-size:10px; background:#0d1117; border:1px solid var(--line); color:var(--muted); margin-right:3px; }
   .sector-Semi { color:#58a6ff; border-color:#58a6ff; }
   .sector-Software { color:#a371f7; border-color:#a371f7; }
@@ -88,20 +70,24 @@
   .sector-Industrial { color:#e3b341; border-color:#e3b341; }
   .sector-Utility { color:#7ee787; border-color:#7ee787; }
   .sector-REIT { color:#79c0ff; border-color:#79c0ff; }
-  .compareTable tr.winner { background: #0d2818; }
-  .tradeRow { display:grid; grid-template-columns: 100px 55px 70px 90px 90px 1fr; gap:8px; padding:5px 10px; border-bottom:1px solid var(--line); font-size:12px; font-family: monospace; }
-  .tradeRow .date { color: var(--muted); font-size:11px; }
-  .tradeRow .action.BUY { color: var(--green); font-weight:700; }
-  .tradeRow .action.SELL { color: var(--red); font-weight:700; }
-  .tradeRow .ticker { color: var(--accent); font-weight:700; }
-  .tradeRow .num { text-align: right; }
-  #perfTableScroll { max-height: 600px; overflow-y: auto; }
+  .variantTable th { font-size:11px; }
+  .variantTable td { font-size:13px; padding:10px; }
+  .variantTable tr.best { background: #0d2818; }
+  .roster { display:grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap:12px; max-height: 600px; overflow-y: auto; padding-right: 6px; }
+  .rosterCard { background:#0d1117; border:1px solid var(--line); border-radius:8px; padding:14px; }
+  .rosterCard.current { border-color: var(--amber); }
+  .rosterCard .name { font-size:15px; font-weight:700; color: var(--accent); }
+  .rosterCard.current .name { color: var(--amber); }
+  .rosterCard .meta { font-size:11px; color: var(--muted); margin-top:4px; }
+  .rosterCard .ret { font-size:20px; font-weight:700; margin-top:8px; }
+  .rosterCard .detail { font-size:11px; color: var(--muted); margin-top: 4px; }
+  #perfTableScroll { max-height: 500px; overflow-y: auto; }
 </style>
 </head>
 <body>
 
-<h1>📋 Monthly Action Plan — v9</h1>
-<div class="sub">120-month roster &amp; performance table · 4 sell rules · sector cap · dual benchmarks</div>
+<h1>📋 Monthly Action Plan — v10</h1>
+<div class="sub">Never-sell strategy tester · 3 sector-cap variants · dual benchmarks · 120-month history</div>
 
 <div class="panel">
   <div class="drop" id="drop">
@@ -158,10 +144,6 @@
       </select>
     </div>
     <div>
-      <label>Max per Sector</label>
-      <input id="sectorCap" type="number" value="5" min="1" max="30" />
-    </div>
-    <div>
       <label>Monthly Total Buy ($)</label>
       <input id="amount" type="number" value="500" />
     </div>
@@ -174,22 +156,24 @@
       <input id="benchmark2" value="QQQ" />
     </div>
   </div>
-  <button id="run">Run All 4 Strategies + Comparison</button>
+  <button id="run">Run 3 Sector-Cap Variants</button>
 </div>
 
 <div class="panel" id="comparePanel" style="display:none">
-  <h3>🏆 Sell-Rule Comparison</h3>
-  <table class="compareTable">
+  <h3>🏆 Sector-Cap Variants — Never Sell, All Compared</h3>
+  <div style="font-size:12px;color:var(--muted);margin-bottom:12px;">
+    Same buy filter, same 120-month window, same "never sell" rule. Only difference: how many names per sector are allowed.
+  </div>
+  <table class="variantTable">
     <thead>
       <tr>
-        <th>Sell Rule</th>
+        <th>Variant</th>
         <th class="num">Invested</th>
         <th class="num">Final Value</th>
         <th class="num">Return</th>
         <th class="num">vs SPY</th>
         <th class="num">vs QQQ</th>
-        <th class="num">Sells</th>
-        <th class="num">Win %</th>
+        <th class="num">Months</th>
       </tr>
     </thead>
     <tbody id="compareBody"></tbody>
@@ -197,7 +181,7 @@
 </div>
 
 <div class="panel" id="chartPanel" style="display:none">
-  <h3>📈 Equity Curves — All Rules + Benchmarks</h3>
+  <h3>📈 Equity Curves — All Variants + Benchmarks</h3>
   <div style="position:relative;height:400px;"><canvas id="simChart"></canvas></div>
 </div>
 
@@ -230,24 +214,12 @@
   <div class="roster" id="rosterBody"></div>
 </div>
 
-<div class="panel" id="tradePanel" style="display:none">
-  <h3>📜 Trade Log <span id="tradeLabel" style="font-size:12px;color:var(--muted);font-weight:400;"></span></h3>
-  <div style="max-height:400px; overflow-y:auto; font-family:monospace; font-size:12px;">
-    <div class="tradeRow" style="background:#0d1117; position:sticky; top:0; color:var(--muted); font-weight:600;">
-      <div>Date</div><div>Action</div><div>Ticker</div><div class="num">Price</div><div class="num">Shares</div><div class="num">Amount / P&L</div>
-    </div>
-    <div id="tradeBody"></div>
-  </div>
-</div>
-
 <script>
 let parsed = null;
-let selected = new Set();
 let scores = {};
-let lastPlan = null;
-let lastSims = {};
-let simChart = null;
 let tickerCache = null;
+let simChart = null;
+let lastSims = {};
 
 const $ = id => document.getElementById(id);
 
@@ -293,7 +265,6 @@ const SECTORS = {
   FRT:"REIT",ARE:"REIT",BXP:"REIT",CPT:"REIT",MAA:"REIT",UDR:"REIT",
 };
 function getSector(tk) { return SECTORS[tk] || "Other"; }
-
 function nameBasket(dateSeed) {
   const d = new Date(dateSeed);
   const months = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
@@ -301,7 +272,6 @@ function nameBasket(dateSeed) {
 }
 function getBenchmark() { return ($("benchmark")?.value || "SPY").trim().toUpperCase(); }
 function getBenchmark2() { return ($("benchmark2")?.value || "QQQ").trim().toUpperCase(); }
-function getSectorCap() { return +($("sectorCap")?.value || 5); }
 
 /* ===== FILE ===== */
 const dropEl = $("drop"), fileEl = $("file"), infoEl = $("fileInfo");
@@ -315,9 +285,9 @@ dropEl.addEventListener("drop", e => {
 });
 fileEl.addEventListener("change", e => { if (e.target.files.length) handleFile(e.target.files[0]); });
 clearEl.addEventListener("click", () => {
-  parsed = null; selected = new Set(); scores = {}; tickerCache = null; fileEl.value = "";
+  parsed = null; scores = {}; tickerCache = null; fileEl.value = "";
   infoEl.style.display = "none"; dropEl.style.display = "";
-  ["pickerPanel","comparePanel","chartPanel","summaryPanel","perfTablePanel","rosterPanel","tradePanel"].forEach(id => $(id).style.display = "none");
+  ["pickerPanel","comparePanel","chartPanel","summaryPanel","perfTablePanel","rosterPanel"].forEach(id => $(id).style.display = "none");
   $("err").textContent = ""; $("okMsg").textContent = "";
 });
 
@@ -332,7 +302,7 @@ function handleFile(file) {
       metaEl.innerHTML = `${parsed.tickers.length} tickers · ${parsed.series[parsed.tickers[0]].length} months · <b>${parsed.freq}</b> · ${firstDate} → ${lastDate}`;
       infoEl.style.display = "flex";
       dropEl.style.display = "none";
-      $("okMsg").textContent = `✅ Loaded & ranked ${parsed.tickers.length} tickers`;
+      $("okMsg").textContent = `✅ Loaded ${parsed.tickers.length} tickers`;
     } catch (err) {
       parsed = null;
       infoEl.style.display = "none"; dropEl.style.display = "";
@@ -350,7 +320,7 @@ $("parse").addEventListener("click", () => {
   if (!text.trim()) { $("err").textContent = "❌ Paste data first"; return; }
   try {
     loadParsed(parseCSV(text));
-    $("okMsg").textContent = `✅ Parsed & ranked ${parsed.tickers.length} tickers`;
+    $("okMsg").textContent = `✅ Parsed ${parsed.tickers.length} tickers`;
   } catch (e) {
     parsed = null;
     $("pickerPanel").style.display = "none";
@@ -362,11 +332,8 @@ function loadParsed(p) {
   parsed = p;
   tickerCache = null;
   computeAllScores();
-  const passing = Object.entries(scores).filter(([, s]) => !s.filtered).sort((a, b) => a[1].rank - b[1].rank);
-  const basketN = +($("basketN")?.value ?? 20);
-  selected = new Set(passing.slice(0, basketN).map(([tk]) => tk));
   $("pickerPanel").style.display = "";
-  ["comparePanel","chartPanel","summaryPanel","perfTablePanel","rosterPanel","tradePanel"].forEach(id => $(id).style.display = "none");
+  ["comparePanel","chartPanel","summaryPanel","perfTablePanel","rosterPanel"].forEach(id => $(id).style.display = "none");
 }
 
 /* ===== PARSER ===== */
@@ -457,7 +424,7 @@ function toMonthlyFirst(rows) {
   return [...buckets.values()];
 }
 
-/* ===== MA ===== */
+/* ===== MA & SCORING ===== */
 function computeMA(series, n) {
   const out = []; let sum = 0; const buf = [];
   for (const p of series) {
@@ -468,19 +435,21 @@ function computeMA(series, n) {
   return out;
 }
 
-/* ===== SCORING ===== */
 function computeRelativeStrength(prices, spyPrices) {
-  const out = { stock12m: 0, stock6m: 0, stock3m: 0, spy12m: 0, vsSPY: 0, vs6m: 0, vs3m: 0 };
+  const out = { stock12m: 0, vsSPY: 0, vs6m: 0, vs3m: 0 };
   const n = prices.length, m = spyPrices.length;
   if (n >= 13) out.stock12m = prices[n-1].close / prices[n-13].close - 1;
-  if (n >= 7)  out.stock6m  = prices[n-1].close / prices[n-7].close - 1;
-  if (n >= 4)  out.stock3m  = prices[n-1].close / prices[n-4].close - 1;
-  if (m >= 13) out.spy12m = spyPrices[m-1].close / spyPrices[m-13].close - 1;
-  if (m >= 7)  out.spy6m  = spyPrices[m-1].close / spyPrices[m-7].close - 1;
-  if (m >= 4)  out.spy3m  = spyPrices[m-1].close / spyPrices[m-4].close - 1;
-  out.vsSPY = out.stock12m - out.spy12m;
-  out.vs6m  = out.stock6m  - out.spy6m;
-  out.vs3m  = out.stock3m  - out.spy3m;
+  let spy12m = 0;
+  if (m >= 13) spy12m = spyPrices[m-1].close / spyPrices[m-13].close - 1;
+  out.vsSPY = out.stock12m - spy12m;
+  let s6 = 0, spy6 = 0;
+  if (n >= 7) s6 = prices[n-1].close / prices[n-7].close - 1;
+  if (m >= 7) spy6 = spyPrices[m-1].close / spyPrices[m-7].close - 1;
+  out.vs6m = s6 - spy6;
+  let s3 = 0, spy3 = 0;
+  if (n >= 4) s3 = prices[n-1].close / prices[n-4].close - 1;
+  if (m >= 4) spy3 = spyPrices[m-1].close / spyPrices[m-4].close - 1;
+  out.vs3m = s3 - spy3;
   return out;
 }
 
@@ -512,22 +481,17 @@ function computeAllScores() {
       }
     }
 
-    const rs = benchSeries
-      ? computeRelativeStrength(prices, benchSeries)
+    const rs = benchSeries ? computeRelativeStrength(prices, benchSeries)
       : (() => {
           const n = prices.length;
           const s12 = n >= 13 ? prices[n-1].close / prices[n-13].close - 1 : 0;
-          const s6  = n >= 7  ? prices[n-1].close / prices[n-7].close - 1 : 0;
-          const s3  = n >= 4  ? prices[n-1].close / prices[n-4].close - 1 : 0;
-          return { stock12m: s12, stock6m: s6, stock3m: s3, spy12m: 0, vsSPY: s12, vs6m: s6, vs3m: s3 };
+          const s6 = n >= 7 ? prices[n-1].close / prices[n-7].close - 1 : 0;
+          const s3 = n >= 4 ? prices[n-1].close / prices[n-4].close - 1 : 0;
+          return { stock12m: s12, vsSPY: s12, vs6m: s6, vs3m: s3 };
         })();
 
     const passesFilters = aboveMA && upAllN && rs.vsSPY > 0;
-    const row = {
-      sector: getSector(tk),
-      stock12m: rs.stock12m, stock6m: rs.stock6m, stock3m: rs.stock3m,
-      vsSPY: rs.vsSPY, vs6m: rs.vs6m, vs3m: rs.vs3m,
-    };
+    const row = { sector: getSector(tk), stock12m: rs.stock12m, vsSPY: rs.vsSPY, vs6m: rs.vs6m, vs3m: rs.vs3m };
 
     if (!passesFilters) {
       scores[tk] = { ...row, score: -1, rank: 9999, filtered: true };
@@ -538,29 +502,9 @@ function computeAllScores() {
 
   const passing = Object.entries(scores).filter(([, s]) => !s.filtered).sort((a, b) => b[1].score - a[1].score);
   passing.forEach(([tk], i) => { scores[tk].rank = i + 1; });
-  const filtered = Object.entries(scores).filter(([, s]) => s.filtered);
-  filtered.forEach(([tk], i) => { scores[tk].rank = 1000 + i; });
 }
 
-/* ===== PLAN ===== */
-function generatePlan(selectedArr, amount, maLen) {
-  const plan = [];
-  let latestDate = null;
-  for (const tk of selectedArr) {
-    const series = parsed.series[tk];
-    if (!series) continue;
-    const ma = computeMA(series, maLen);
-    const last = series.at(-1);
-    const lastMA = ma.at(-1);
-    const lastAboveMA = lastMA != null && last.close > lastMA;
-    let action = lastAboveMA ? "BUY" : "HOLD";
-    plan.push({ ticker: tk, sector: getSector(tk), lastDate: last.date, lastPrice: last.close, lastMA, action });
-    if (!latestDate || last.date > latestDate) latestDate = last.date;
-  }
-  return { rows: plan, asOf: latestDate };
-}
-
-/* ===== HISTORICAL ===== */
+/* ===== HISTORICAL / PICK ===== */
 function buildTickerCache() {
   const cache = {};
   for (const tk of parsed.tickers) {
@@ -613,8 +557,8 @@ function pickBasketAsOf(asOfDate, n, maLen, uptrendN, sectorCap) {
       : (() => {
           const len = upTo.length;
           const s12 = len >= 13 ? upTo[len-1].close / upTo[len-13].close - 1 : 0;
-          const s6  = len >= 7  ? upTo[len-1].close / upTo[len-7].close - 1 : 0;
-          const s3  = len >= 4  ? upTo[len-1].close / upTo[len-4].close - 1 : 0;
+          const s6 = len >= 7 ? upTo[len-1].close / upTo[len-7].close - 1 : 0;
+          const s3 = len >= 4 ? upTo[len-1].close / upTo[len-4].close - 1 : 0;
           return { vsSPY: s12, vs6m: s6, vs3m: s3 };
         })();
     if (rs.vsSPY <= 0) continue;
@@ -626,7 +570,7 @@ function pickBasketAsOf(asOfDate, n, maLen, uptrendN, sectorCap) {
   const picked = [];
   for (const item of local) {
     const sec = getSector(item.tk);
-    if ((sectorCount[sec] || 0) >= sectorCap) continue;
+    if (sectorCap > 0 && (sectorCount[sec] || 0) >= sectorCap) continue;
     picked.push(item.tk);
     sectorCount[sec] = (sectorCount[sec] || 0) + 1;
     if (picked.length >= n) break;
@@ -634,18 +578,17 @@ function pickBasketAsOf(asOfDate, n, maLen, uptrendN, sectorCap) {
   return picked;
 }
 
-function simulatePortfolio(sellRule, n, maLen, uptrendN, monthlyAmount, sectorCap) {
+/* ===== SIMULATION (never sell) ===== */
+function simulateNeverSell(n, maLen, uptrendN, monthlyAmount, sectorCap) {
   if (!tickerCache) tickerCache = buildTickerCache();
   const anchorTk = parsed.tickers[0];
   if (!anchorTk || !parsed.series[anchorTk]) return null;
   const timeline = parsed.series[anchorTk].map(p => p.date);
   if (timeline.length < maLen + 15) return null;
 
-  const LOOKBACK = 120;
-  const startIdx = Math.max(maLen + 5, timeline.length - LOOKBACK);
+  const startIdx = Math.max(maLen + 5, timeline.length - 120);
   const holdings = {};
   let totalInvested = 0;
-  const trades = [];
   const equityCurve = [];
 
   for (let i = startIdx; i < timeline.length; i++) {
@@ -655,31 +598,10 @@ function simulatePortfolio(sellRule, n, maLen, uptrendN, monthlyAmount, sectorCa
     for (const tk of Object.keys(holdings)) {
       const t = tickerCache[tk];
       const idx = t.map[dateKey];
-      if (idx != null) {
-        const price = t.series[idx].close;
-        holdings[tk].lastPrice = price;
-        if (price > (holdings[tk].peak || 0)) holdings[tk].peak = price;
-        const upTo = t.series.slice(0, idx + 1);
-        holdings[tk].lastMA = computeMA(upTo, maLen).at(-1);
-      }
+      if (idx != null) holdings[tk].lastPrice = t.series[idx].close;
     }
 
     const targetBasket = pickBasketAsOf(date, n, maLen, uptrendN, sectorCap);
-    const targetSet = new Set(targetBasket);
-
-    for (const tk of Object.keys(holdings)) {
-      const h = holdings[tk];
-      let shouldSell = false;
-      if (sellRule === "dropN") { if (!targetSet.has(tk)) shouldSell = true; }
-      else if (sellRule === "belowMA") { if (h.lastMA != null && h.lastPrice < h.lastMA) shouldSell = true; }
-      else if (sellRule === "stop30") { if (h.peak && h.lastPrice < h.peak * 0.70) shouldSell = true; }
-      if (shouldSell && h.shares > 0) {
-        const proceeds = h.shares * h.lastPrice;
-        trades.push({ date, action: "SELL", ticker: tk, price: h.lastPrice, shares: h.shares, amount: proceeds, pl: proceeds - h.costBasis });
-        delete holdings[tk];
-      }
-    }
-
     if (targetBasket.length > 0) {
       const perTicker = monthlyAmount / targetBasket.length;
       for (const tk of targetBasket) {
@@ -688,28 +610,23 @@ function simulatePortfolio(sellRule, n, maLen, uptrendN, monthlyAmount, sectorCa
         if (idx == null) continue;
         const price = t.series[idx].close;
         const sharesBought = perTicker / price;
-        if (!holdings[tk]) holdings[tk] = { shares: 0, costBasis: 0, lastPrice: price, lastMA: null, peak: price };
+        if (!holdings[tk]) holdings[tk] = { shares: 0, costBasis: 0, lastPrice: price };
         holdings[tk].shares += sharesBought;
         holdings[tk].costBasis += perTicker;
-        if (price > holdings[tk].peak) holdings[tk].peak = price;
-        trades.push({ date, action: "BUY", ticker: tk, price, shares: sharesBought, amount: perTicker, pl: null });
         totalInvested += perTicker;
       }
     }
 
     let portfolioValue = 0;
     for (const tk of Object.keys(holdings)) portfolioValue += holdings[tk].shares * holdings[tk].lastPrice;
-    equityCurve.push({ date, value: portfolioValue, invested: totalInvested });
+    equityCurve.push({ date, value: portfolioValue });
   }
 
   const finalValue = equityCurve.at(-1)?.value ?? 0;
   const totalReturn = totalInvested > 0 ? (finalValue / totalInvested - 1) : 0;
-  const sells = trades.filter(t => t.action === "SELL");
-  const wins = sells.filter(t => t.pl > 0).length;
 
   return {
-    trades, equityCurve, totalInvested, finalValue, totalReturn,
-    sells: sells.length, winRate: sells.length > 0 ? wins/sells.length*100 : 0,
+    equityCurve, totalInvested, finalValue, totalReturn,
     startDate: timeline[startIdx], endDate: timeline[timeline.length - 1],
     months: timeline.length - startIdx,
   };
@@ -748,21 +665,20 @@ $("run").addEventListener("click", () => {
     const maLen = +$("maLen").value;
     const basketN = +$("basketN").value;
     const uptrendN = +$("uptrendMonths").value;
-    const sectorCap = getSectorCap();
 
-    const rules = [
-      { key: "dropN",   label: "Sell when drops out of top-N" },
-      { key: "belowMA", label: "Sell only when below MA" },
-      { key: "stop30",  label: "Sell at −30% from peak" },
-      { key: "never",   label: "Never sell" },
+    // 3 variants: no cap, 4-cap, 3-cap
+    const variants = [
+      { key: "nocaP",   label: "No sector cap",     cap: 0 },
+      { key: "cap4",    label: "Sector cap: 4",     cap: 4 },
+      { key: "cap3",    label: "Sector cap: 3",     cap: 3 },
     ];
 
     lastSims = {};
-    for (const r of rules) {
+    for (const v of variants) {
       try {
-        const sim = simulatePortfolio(r.key, basketN, maLen, uptrendN, amount, sectorCap);
-        if (sim) lastSims[r.key] = { ...sim, label: r.label };
-      } catch (e) { console.error("Sim failed:", r.key, e); }
+        const sim = simulateNeverSell(basketN, maLen, uptrendN, amount, v.cap);
+        if (sim) lastSims[v.key] = { ...sim, label: v.label };
+      } catch (e) { console.error("Sim failed:", v.key, e); }
     }
 
     const spyBH = buyHoldBenchmark(getBenchmark(), amount, maLen);
@@ -771,34 +687,18 @@ $("run").addEventListener("click", () => {
     renderComparison(lastSims, spyBH, qqqBH);
     renderEquityChart(lastSims, spyBH, qqqBH);
 
-    // Pick current basket and render plan
+    // Render basket plan for no-cap variant
     const passing = Object.entries(scores).filter(([, s]) => !s.filtered).sort((a, b) => b[1].score - a[1].score);
-    const sectorCount = {};
-    const activeBasket = [];
-    for (const [tk] of passing) {
-      const sec = getSector(tk);
-      if ((sectorCount[sec] || 0) >= sectorCap) continue;
-      activeBasket.push(tk);
-      sectorCount[sec] = (sectorCount[sec] || 0) + 1;
-      if (activeBasket.length >= basketN) break;
-    }
+    const activeBasket = passing.slice(0, basketN).map(([tk]) => tk);
+    renderPlan(activeBasket, amount, maLen);
+    renderSummary(activeBasket, amount);
 
-    const { rows, asOf } = generatePlan(activeBasket, amount, maLen);
-    lastPlan = { rows, asOf, amount, maLen };
-    renderSummary(rows, asOf, amount, nameBasket(asOf));
-    renderBasketPlan(rows, amount);
-
-    // Historical baskets for 120 months
-    const history = computeHistoricalBaskets(basketN, maLen, uptrendN, sectorCap);
+    // Historical for 120 months using cap = 0
+    const history = computeHistoricalBaskets(basketN, maLen, uptrendN, 0);
     renderPerfTable(history);
     renderRoster(history);
 
-    // Trade log — show "below MA" rule since it's the interesting one
-    const logSim = lastSims.belowMA || lastSims.dropN || lastSims.never;
-    if (logSim) renderTradeLog(logSim);
-
-    ["comparePanel","chartPanel","summaryPanel","perfTablePanel","rosterPanel","tradePanel"].forEach(id => $(id).style.display = "");
-    $("asOfLabel").textContent = `— as of ${asOf.toISOString().slice(0, 10)}`;
+    ["comparePanel","chartPanel","summaryPanel","perfTablePanel","rosterPanel"].forEach(id => $(id).style.display = "");
   } catch (e) {
     $("err").textContent = "❌ " + e.message;
     console.error(e);
@@ -807,33 +707,26 @@ $("run").addEventListener("click", () => {
 
 function renderComparison(sims, spy, qqq) {
   const tbody = $("compareBody");
-  const rules = [
-    { key: "dropN",   label: "Sell when drops out of top-N" },
-    { key: "belowMA", label: "Sell only when below MA" },
-    { key: "stop30",  label: "Sell at −30% from peak" },
-    { key: "never",   label: "Never sell" },
-  ].filter(r => sims[r.key]);
-
+  const rows = ["nocaP", "cap4", "cap3"].filter(k => sims[k]);
   const spyRet = spy?.totalReturn ?? 0;
   const qqqRet = qqq?.totalReturn ?? 0;
   let bestFinal = -Infinity;
-  rules.forEach(r => { if (sims[r.key].finalValue > bestFinal) bestFinal = sims[r.key].finalValue; });
+  rows.forEach(k => { if (sims[k].finalValue > bestFinal) bestFinal = sims[k].finalValue; });
 
-  tbody.innerHTML = rules.map(r => {
-    const s = sims[r.key];
+  tbody.innerHTML = rows.map(k => {
+    const s = sims[k];
     const retCls = s.totalReturn >= 0 ? "g" : "r";
     const vsSpy = s.totalReturn - spyRet;
     const vsQqq = s.totalReturn - qqqRet;
-    const win = s.finalValue === bestFinal;
-    return `<tr class="${win ? 'winner' : ''}">
-      <td><b>${r.label}</b></td>
+    const best = s.finalValue === bestFinal;
+    return `<tr class="${best ? 'best' : ''}">
+      <td><b>${s.label}</b></td>
       <td class="num">$${Math.round(s.totalInvested).toLocaleString()}</td>
       <td class="num"><b>$${Math.round(s.finalValue).toLocaleString()}</b></td>
       <td class="num ${retCls}"><b>${(s.totalReturn*100).toFixed(1)}%</b></td>
       <td class="num ${vsSpy >= 0 ? 'g' : 'r'}">${vsSpy >= 0 ? '+' : ''}${(vsSpy*100).toFixed(1)}%</td>
       <td class="num ${vsQqq >= 0 ? 'g' : 'r'}">${vsQqq >= 0 ? '+' : ''}${(vsQqq*100).toFixed(1)}%</td>
-      <td class="num">${s.sells}</td>
-      <td class="num">${s.winRate.toFixed(0)}%</td>
+      <td class="num">${s.months}</td>
     </tr>`;
   }).join("");
 
@@ -842,14 +735,14 @@ function renderComparison(sims, spy, qqq) {
     <td class="num">$${Math.round(spy.totalInvested).toLocaleString()}</td>
     <td class="num">$${Math.round(spy.finalValue).toLocaleString()}</td>
     <td class="num ${spy.totalReturn >= 0 ? 'g' : 'r'}">${(spy.totalReturn*100).toFixed(1)}%</td>
-    <td class="num m">—</td><td class="num m">—</td><td class="num">0</td><td class="num">—</td>
+    <td class="num m">—</td><td class="num m">—</td><td class="num">${spy.curve.length}</td>
   </tr>`;
   if (qqq) tbody.innerHTML += `<tr style="opacity:0.7; font-style:italic;">
     <td>Buy & Hold ${getBenchmark2()}</td>
     <td class="num">$${Math.round(qqq.totalInvested).toLocaleString()}</td>
     <td class="num">$${Math.round(qqq.finalValue).toLocaleString()}</td>
     <td class="num ${qqq.totalReturn >= 0 ? 'g' : 'r'}">${(qqq.totalReturn*100).toFixed(1)}%</td>
-    <td class="num m">—</td><td class="num m">—</td><td class="num">0</td><td class="num">—</td>
+    <td class="num m">—</td><td class="num m">—</td><td class="num">${qqq.curve.length}</td>
   </tr>`;
 }
 
@@ -858,9 +751,10 @@ function renderEquityChart(sims, spy, qqq) {
   const first = Object.values(sims)[0];
   if (!first) return;
   const labels = first.equityCurve.map(p => p.date.toISOString().slice(0,7));
-  const COLORS = { dropN: "#58a6ff", belowMA: "#3fb950", stop30: "#d29922", never: "#a371f7" };
+  const COLORS = { nocaP: "#58a6ff", cap4: "#3fb950", cap3: "#d29922" };
   const datasets = Object.entries(sims).map(([key, s]) => ({
-    label: s.label, data: s.equityCurve.map(p => p.value),
+    label: s.label,
+    data: s.equityCurve.map(p => p.value),
     borderColor: COLORS[key] || "#58a6ff",
     borderWidth: 2, tension: .15, pointRadius: 0, fill: false,
   }));
@@ -875,17 +769,65 @@ function renderEquityChart(sims, spy, qqq) {
     options: {
       responsive: true, maintainAspectRatio: false,
       plugins: { legend: { labels: { color: "#e6edf3", boxWidth: 12 } },
-        title: { display: true, text: "Portfolio Value — 4 Sell Rules vs Benchmarks (120 months)", color: "#e6edf3" } },
+        title: { display: true, text: "Never-Sell Strategy — 3 Sector-Cap Variants", color: "#e6edf3" } },
       scales: { x: { ticks: { color: "#8b949e", maxTicksLimit: 12 }, grid: { color: "#2a3038" } },
                 y: { ticks: { color: "#8b949e", callback: v => "$" + Math.round(v).toLocaleString() }, grid: { color: "#2a3038" } } }
     }
   });
 }
 
+/* ===== PLAN & SUMMARY ===== */
+function renderPlan(activeBasket, amount, maLen) {
+  const body = $("basketPlanBody");
+  const box = $("basketPlanBox");
+  if (activeBasket.length === 0) { box.style.display = "none"; return; }
+  const perTicker = amount / activeBasket.length;
+  let html = `<div style="font-size:13px;color:var(--muted);margin-bottom:10px;">Buy $${perTicker.toFixed(2)} of each of ${activeBasket.length} names this month. <b style="color:var(--green);">Never sell.</b></div>`;
+  html += `<table><thead><tr><th>#</th><th>Ticker</th><th>Sector</th><th class="num">Price</th><th class="num">MA</th><th class="num">vs SPY 12m</th><th class="num">$ Buy</th></tr></thead><tbody>`;
+  activeBasket.forEach(tk => {
+    const s = scores[tk];
+    const prices = parsed.series[tk];
+    const last = prices.at(-1);
+    const ma = computeMA(prices, maLen);
+    const lastMA = ma.at(-1);
+    const sec = getSector(tk);
+    const vs = s?.vsSPY != null ? (s.vsSPY >= 0 ? '+' : '') + (s.vsSPY*100).toFixed(1) + '%' : '—';
+    html += `<tr>
+      <td class="m">#${s?.rank ?? '—'}</td>
+      <td><b style="color:var(--accent);">${tk}</b></td>
+      <td><span class="sectorPill sector-${sec}">${sec}</span></td>
+      <td class="num">$${last.close.toFixed(2)}</td>
+      <td class="num">${lastMA == null ? "—" : "$" + lastMA.toFixed(2)}</td>
+      <td class="num ${s?.vsSPY >= 0 ? 'g' : 'r'}">${vs}</td>
+      <td class="num"><b>$${perTicker.toFixed(2)}</b></td>
+    </tr>`;
+  });
+  html += "</tbody></table>";
+  body.innerHTML = html;
+  box.style.display = "";
+}
+
+function renderSummary(activeBasket, amount) {
+  const boxes = [
+    { k: "Strategy", v: "Buy + Hold", cls: "g" },
+    { k: "Tickers", v: activeBasket.length, cls: "c" },
+    { k: "Monthly", v: "$" + amount.toLocaleString(), cls: "c" },
+    { k: "Per Ticker", v: "$" + (activeBasket.length > 0 ? (amount/activeBasket.length).toFixed(2) : "0"), cls: "c" },
+    { k: "Sell Rule", v: "Never", cls: "a" },
+    { k: "Sector Cap", v: "None", cls: "m" },
+  ];
+  $("summaryBoxes").innerHTML = boxes.map(b =>
+    `<div class="summaryCard"><div class="k">${b.k}</div><div class="v ${b.cls || ""}">${b.v}</div></div>`
+  ).join("");
+  const lastDate = parsed.series[parsed.tickers[0]].at(-1).date;
+  $("asOfLabel").textContent = `— as of ${lastDate.toISOString().slice(0,10)}`;
+}
+
+/* ===== HISTORICAL BASKETS ===== */
 function computeHistoricalBaskets(n, maLen, uptrendN, sectorCap) {
   if (!tickerCache) tickerCache = buildTickerCache();
   const anchorTk = parsed.tickers[0];
-  if (!anchorTk || !parsed.series[anchorTk]) return [];
+  if (!anchorTk) return [];
   const timeline = parsed.series[anchorTk].map(p => p.date);
   const latestKey = timeline[timeline.length - 1].toISOString().slice(0,10);
   const bench = getBenchmark();
@@ -968,75 +910,26 @@ function renderRoster(history) {
       <div class="ret ${cls}">${(r.basketRet*100).toFixed(1)}%</div>
       <div class="detail ${cls1}">${vs1}</div>
       <div class="detail ${cls2}">${vs2}</div>
-      <div class="detail" style="margin-top:6px;">${r.topN.join(" · ")}</div>
     </div>`;
   }).join("");
 }
 
-function renderTradeLog(sim) {
-  const container = $("tradeBody");
-  if (!sim) { container.innerHTML = "<div style='color:var(--muted);padding:14px;'>No trades.</div>"; return; }
-  const sorted = [...sim.trades].sort((a, b) => b.date - a.date);
-  container.innerHTML = sorted.slice(0, 200).map(t => {
-    const amtCls = t.action === "BUY" ? "" : (t.pl >= 0 ? "g" : "r");
-    const amountDisplay = t.action === "BUY"
-      ? `$${t.amount.toFixed(2)}`
-      : `$${t.amount.toFixed(2)} (${t.pl >= 0 ? '+' : ''}$${t.pl.toFixed(2)})`;
-    return `<div class="tradeRow">
-      <div class="date">${t.date.toISOString().slice(0,10)}</div>
-      <div class="action ${t.action}">${t.action}</div>
-      <div class="ticker">${t.ticker}</div>
-      <div class="num">$${t.price.toFixed(2)}</div>
-      <div class="num">${t.shares.toFixed(3)}</div>
-      <div class="num ${amtCls}">${amountDisplay}</div>
-    </div>`;
-  }).join("");
-  $("tradeLabel").textContent = `— showing "${sim.label}"`;
-}
-
-function renderSummary(rows, asOf, amount, basketName) {
-  const buys = rows.filter(r => r.action === "BUY");
-  const boxes = [
-    { k: "Basket", v: basketName, cls: "a" },
-    { k: "To Buy", v: buys.length, cls: "g" },
-    { k: "Monthly", v: "$" + amount.toLocaleString(), cls: "c" },
-    { k: "Per Ticker", v: "$" + (buys.length > 0 ? (amount/buys.length).toFixed(2) : "0.00"), cls: "c" },
-    { k: "Sector Cap", v: getSectorCap() + "/sector", cls: "c" },
-    { k: "Tickers", v: rows.length, cls: "c" },
-  ];
-  $("summaryBoxes").innerHTML = boxes.map(b =>
-    `<div class="summaryCard"><div class="k">${b.k}</div><div class="v ${b.cls || ""}">${b.v}</div></div>`
-  ).join("");
-}
-
-function renderBasketPlan(rows, amount) {
-  const buys = rows.filter(r => r.action === "BUY");
-  const box = $("basketPlanBox");
-  const body = $("basketPlanBody");
-  if (buys.length === 0) { box.style.display = "none"; return; }
-  const perTicker = amount / buys.length;
-  let html = `<div style="font-size:13px;color:var(--muted);margin-bottom:10px;">Contribute <b style="color:var(--txt);">$${amount.toLocaleString()}</b> across <b style="color:var(--txt);">${buys.length}</b> tickers · $${perTicker.toFixed(2)} each.</div>`;
-  html += `<table><thead><tr><th>#</th><th>Ticker</th><th>Sector</th><th class="num">Action</th><th class="num">Price</th><th class="num">MA</th><th class="num">vs SPY 12m</th><th class="num">$ Buy</th></tr></thead><tbody>`;
-  buys.forEach(r => {
-    const s = scores[r.ticker];
-    const rank = s?.rank ?? "—";
-    const sec = r.sector || getSector(r.ticker);
-    const vs = s?.vsSPY != null ? (s.vsSPY >= 0 ? '+' : '') + (s.vsSPY*100).toFixed(1) + '%' : '—';
-    html += `<tr>
-      <td class="m">#${rank}</td>
-      <td><b style="color:var(--accent);">${r.ticker}</b></td>
-      <td><span class="sectorPill sector-${sec}">${sec}</span></td>
-      <td class="num"><span class="badge ${r.action}">${r.action}</span></td>
-      <td class="num">$${r.lastPrice.toFixed(2)}</td>
-      <td class="num">${r.lastMA == null ? "—" : "$" + r.lastMA.toFixed(2)}</td>
-      <td class="num ${s?.vsSPY >= 0 ? 'g' : 'r'}">${vs}</td>
-      <td class="num"><b>$${perTicker.toFixed(2)}</b></td>
-    </tr>`;
+/* Re-score when filters change */
+["maLen","uptrendMonths","benchmark","benchmark2"].forEach(id => {
+  $(id).addEventListener("change", () => {
+    if (!parsed) return;
+    computeAllScores();
+    tickerCache = null;
   });
-  html += "</tbody></table>";
-  body.innerHTML = html;
-  box.style.display = "";
-}
+});
+document.querySelectorAll(".maRow button").forEach(b => {
+  b.addEventListener("click", () => {
+    $("maLen").value = b.dataset.ma;
+    document.querySelectorAll(".maRow button").forEach(x => x.classList.remove("active"));
+    b.classList.add("active");
+    if (parsed) { computeAllScores(); tickerCache = null; }
+  });
+});
 </script>
 </body>
 </html>
