@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Monthly Action Plan — v7 Sector-Aware</title>
+<title>Monthly Action Plan — v8 Comparison</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <style>
   :root { --bg:#0e1117; --panel:#161b22; --line:#2a3038; --txt:#e6edf3; --muted:#8b949e; --accent:#58a6ff; --green:#3fb950; --red:#f85149; --amber:#d29922; --purple:#a371f7; --cyan:#39c5cf; }
@@ -70,7 +70,7 @@
   .rollingCard .ret { font-size:26px; font-weight:700; }
   .rollingCard .detail { font-size:11px; color:var(--muted); margin-top:4px; line-height:1.5; }
   .badge2 { display:inline-block; padding:1px 6px; border-radius:6px; font-size:10px; background:#0d1117; border:1px solid var(--line); color:var(--muted); margin-left:4px; }
-  .roster { display:grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap:12px; }
+  .roster { display:grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap:12px; }
   .rosterCard { background:#0d1117; border:1px solid var(--line); border-radius:8px; padding:14px; }
   .rosterCard.current { border-color: var(--amber); }
   .rosterCard .name { font-size:15px; font-weight:700; color: var(--accent); }
@@ -88,12 +88,21 @@
   .sector-Industrial { color:#e3b341; border-color:#e3b341; }
   .sector-Utility { color:#7ee787; border-color:#7ee787; }
   .sector-REIT { color:#79c0ff; border-color:#79c0ff; }
+  .compareTable th { font-size:11px; }
+  .compareTable td { font-size:13px; padding:10px 10px; }
+  .compareTable tr.winner { background: #0d2818; }
+  .tradeRow { display:grid; grid-template-columns: 100px 55px 70px 90px 90px 1fr; gap:8px; padding:5px 10px; border-bottom:1px solid var(--line); font-size:12px; font-family: monospace; }
+  .tradeRow .date { color: var(--muted); font-size:11px; }
+  .tradeRow .action.BUY { color: var(--green); font-weight:700; }
+  .tradeRow .action.SELL { color: var(--red); font-weight:700; }
+  .tradeRow .ticker { color: var(--accent); font-weight:700; }
+  .tradeRow .num { text-align: right; }
 </style>
 </head>
 <body>
 
-<h1>📋 Monthly Action Plan — v7 Sector-Aware</h1>
-<div class="sub">120-month lookback · sector cap · dual benchmarks · real portfolio simulation</div>
+<h1>📋 Monthly Action Plan — v8 Comparison</h1>
+<div class="sub">4 sell rules side-by-side · 120-month lookback · sector cap · dual benchmarks · monthly roster</div>
 
 <div class="panel">
   <div class="drop" id="drop">
@@ -140,33 +149,23 @@
         <option value="1">Last 1 month up</option>
         <option value="2">Last 2 months up</option>
         <option value="3">Last 3 months up</option>
-        <option value="6">Last 6 months up</option>
       </select>
     </div>
     <div>
       <label>Basket Size</label>
       <select id="basketN">
         <option value="5">Top 5</option>
-        <option value="10" selected>Top 10</option>
-        <option value="20">Top 20</option>
-        <option value="30">Top 30</option>
+        <option value="10">Top 10</option>
+        <option value="20" selected>Top 20</option>
       </select>
     </div>
     <div>
       <label>Max per Sector</label>
-      <input id="sectorCap" type="number" value="4" min="1" max="30" />
+      <input id="sectorCap" type="number" value="5" min="1" max="30" />
     </div>
     <div>
       <label>Monthly Total Buy ($)</label>
       <input id="amount" type="number" value="500" />
-    </div>
-    <div>
-      <label>Sell Rule</label>
-      <select id="sellRule">
-        <option value="drop" selected>Sell when drops out of top-N</option>
-        <option value="ma">Sell only when below MA</option>
-        <option value="never">Never sell (accumulate)</option>
-      </select>
     </div>
     <div>
       <label>Primary Benchmark</label>
@@ -178,41 +177,51 @@
     </div>
   </div>
 
-  <div class="toolbar" style="margin-top:14px;">
-    <button class="small" id="selectAll">✓ Select All</button>
-    <button class="small ghost" id="deselectAll">✗ Deselect All</button>
-    <button class="small ghost" id="invertSel">↺ Invert</button>
-    <button class="small" id="autoPick">🎯 Auto-pick Top N</button>
-    <span style="color:var(--muted);font-size:12px;margin-left:auto;">Selected: <b id="selCount" style="color:var(--accent);">0</b></span>
-  </div>
-
-  <div class="chipRow" id="tickerRow"></div>
-
-  <button id="run">Generate Plan + Simulation</button>
-  <button id="exportTrades" class="ghost">Export Trade Log CSV</button>
-  <button id="saveSel" class="ghost">💾 Save Selection</button>
-  <button id="loadSel" class="ghost">📂 Load Selection</button>
-  <input type="file" id="loadSelFile" accept=".json" style="display:none" />
+  <button id="run">Run All 4 Strategies + Comparison</button>
+  <button id="exportTrades" class="ghost">Export Trade Log (active rule)</button>
 </div>
 
-<div class="panel" id="simPanel" style="display:none">
-  <h3>💵 Real Portfolio Simulation — 120 Months</h3>
-  <div style="font-size:12px;color:var(--muted);margin-bottom:14px;">
-    Tracks shares bought and sold each month. Buy $X split across current top-N. Sell per your rule.
+<div class="panel" id="comparePanel" style="display:none">
+  <h3>🏆 Sell-Rule Comparison — Which Rule Wins</h3>
+  <div style="font-size:12px;color:var(--muted);margin-bottom:12px;">
+    Four sell rules tested on the same 120-month window, same buys, same starting capital. Winner row highlighted.
   </div>
-  <div class="kpi" id="simKpis"></div>
-  <div style="position:relative;height:340px;"><canvas id="simChart"></canvas></div>
+  <table class="compareTable">
+    <thead>
+      <tr>
+        <th>Sell Rule</th>
+        <th class="num">Invested</th>
+        <th class="num">Final Value</th>
+        <th class="num">Return</th>
+        <th class="num">vs SPY</th>
+        <th class="num">vs QQQ</th>
+        <th class="num">Sells</th>
+        <th class="num">Win %</th>
+      </tr>
+    </thead>
+    <tbody id="compareBody"></tbody>
+  </table>
+  <div style="font-size:11px;color:var(--muted);margin-top:10px;">
+    <b>Sell when drops out of top-N</b>: exits as soon as a name leaves the top N. High churn.<br>
+    <b>Sell only when below MA</b>: holds through noise, exits only on breakdown.<br>
+    <b>Sell at −30% from cost</b>: classic stop-loss.<br>
+    <b>Never sell</b>: pure buy-and-hold of the picks. Tests if the buy filter itself has edge.
+  </div>
+</div>
+
+<div class="panel" id="chartPanel" style="display:none">
+  <h3>📈 Equity Curves — All Rules + Benchmarks</h3>
+  <div style="position:relative;height:400px;"><canvas id="simChart"></canvas></div>
 </div>
 
 <div class="panel" id="tradePanel" style="display:none">
-  <h3>📜 Trade Log</h3>
-  <div style="font-size:12px;color:var(--muted);margin-bottom:10px;">
-    Every buy and sell. Most recent first.
+  <h3>📜 Trade Log <span id="tradeLabel" style="font-size:12px;color:var(--muted);font-weight:400;"></span></h3>
+  <div style="max-height:400px; overflow-y:auto; font-family:monospace; font-size:12px;">
+    <div class="tradeRow" style="background:#0d1117; position:sticky; top:0; color:var(--muted); font-weight:600;">
+      <div>Date</div><div>Action</div><div>Ticker</div><div class="num">Price</div><div class="num">Shares</div><div class="num">Amount / P&L</div>
+    </div>
+    <div id="tradeBody"></div>
   </div>
-  <div style="display:grid; grid-template-columns: 110px 70px 80px 100px 100px 1fr; gap:10px; padding:8px 12px; border-bottom:1px solid var(--line); color:var(--muted); font-size:11px; text-transform:uppercase; position:sticky; top:0; background:var(--panel); z-index:1;">
-    <div>Date</div><div>Action</div><div>Ticker</div><div style="text-align:right;">Price</div><div style="text-align:right;">Shares</div><div style="text-align:right;">Amount / P&L</div>
-  </div>
-  <div id="tradeBody" style="max-height:500px; overflow-y:auto; font-family:monospace; font-size:12px;"></div>
 </div>
 
 <div class="panel" id="summaryPanel" style="display:none">
@@ -225,9 +234,9 @@
 </div>
 
 <div class="panel" id="perfTablePanel" style="display:none">
-  <h3>📊 Basket Performance Table — Last 12 Months</h3>
+  <h3>📊 Basket Performance Table — Last 36 Months</h3>
   <div style="font-size:12px;color:var(--muted);margin-bottom:12px;">
-    Return = equal-weight since pick date. vs SPY / vs QQQ = spread in points.
+    One row per basket. Return = equal-weight since pick. vs SPY / vs QQQ = spread in points.
   </div>
   <table>
     <thead>
@@ -240,12 +249,17 @@
   </table>
 </div>
 
+<div class="panel" id="rosterPanel" style="display:none">
+  <h3>🗂️ Basket Roster — Last 36 Months</h3>
+  <div class="roster" id="rosterBody"></div>
+</div>
+
 <script>
 let parsed = null;
 let selected = new Set();
 let scores = {};
 let lastPlan = null;
-let lastTrades = [];
+let lastSims = {};
 let simChart = null;
 let tickerCache = null;
 
@@ -300,15 +314,13 @@ function nameBasket(dateSeed) {
   const months = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
   return `${months[d.getUTCMonth()]} ${d.getUTCFullYear()}`;
 }
-
 function getBenchmark() { return ($("benchmark")?.value || "SPY").trim().toUpperCase(); }
 function getBenchmark2() { return ($("benchmark2")?.value || "QQQ").trim().toUpperCase(); }
-function getSectorCap() { return +($("sectorCap")?.value || 4); }
+function getSectorCap() { return +($("sectorCap")?.value || 5); }
 
 /* ===== FILE ===== */
 const dropEl = $("drop"), fileEl = $("file"), infoEl = $("fileInfo");
 const nameEl = $("fileName"), metaEl = $("fileMeta"), clearEl = $("clearFile");
-
 dropEl.addEventListener("click", () => fileEl.click());
 dropEl.addEventListener("dragover", e => { e.preventDefault(); dropEl.classList.add("over"); });
 dropEl.addEventListener("dragleave", () => dropEl.classList.remove("over"));
@@ -320,7 +332,7 @@ fileEl.addEventListener("change", e => { if (e.target.files.length) handleFile(e
 clearEl.addEventListener("click", () => {
   parsed = null; selected = new Set(); scores = {}; tickerCache = null; fileEl.value = "";
   infoEl.style.display = "none"; dropEl.style.display = "";
-  ["pickerPanel","simPanel","tradePanel","summaryPanel","perfTablePanel"].forEach(id => $(id).style.display = "none");
+  ["pickerPanel","comparePanel","chartPanel","tradePanel","summaryPanel","perfTablePanel","rosterPanel"].forEach(id => $(id).style.display = "none");
   $("err").textContent = ""; $("okMsg").textContent = "";
 });
 
@@ -366,11 +378,11 @@ function loadParsed(p) {
   tickerCache = null;
   computeAllScores();
   const passing = Object.entries(scores).filter(([, s]) => !s.filtered).sort((a, b) => a[1].rank - b[1].rank);
-  const basketN = +($("basketN")?.value ?? 10);
+  const basketN = +($("basketN")?.value ?? 20);
   selected = new Set(passing.slice(0, basketN).map(([tk]) => tk));
   renderTickers();
-  ["simPanel","tradePanel","summaryPanel","perfTablePanel"].forEach(id => $(id).style.display = "none");
   $("pickerPanel").style.display = "";
+  ["comparePanel","chartPanel","tradePanel","summaryPanel","perfTablePanel","rosterPanel"].forEach(id => $(id).style.display = "none");
 }
 
 /* ===== PARSER ===== */
@@ -471,7 +483,6 @@ function computeMA(series, n) {
   }
   return out;
 }
-
 function monthsAboveMA(prices, ma) {
   let count = 0;
   for (let i = prices.length - 1; i >= 0; i--) {
@@ -515,7 +526,6 @@ function computeAllScores() {
     const lastPrice = prices.at(-1).close;
     const lastMA = ma.at(-1);
     const aboveMA = lastMA != null && lastPrice > lastMA;
-
     const priceVsMA = lastMA > 0 ? lastPrice / lastMA : 1;
     if (priceVsMA > 5 || priceVsMA < 0.2) continue;
 
@@ -563,42 +573,20 @@ function computeAllScores() {
 /* ===== TICKERS ===== */
 function renderTickers() {
   const row = $("tickerRow");
+  if (!row) return;
   row.innerHTML = "";
   parsed.tickers.forEach(tk => {
     const s = scores[tk];
     const chip = document.createElement("div");
     chip.className = "chip" + (selected.has(tk) ? " active" : "") + (s?.filtered ? " filtered" : "");
     chip.innerHTML = `${tk}${s && !s.filtered ? `<span class="rank">#${s.rank}</span>` : ""}`;
-    chip.title = s ? `${getSector(tk)} · vs SPY: ${(s.vsSPY*100).toFixed(1)}%` : "";
     chip.addEventListener("click", () => {
       if (selected.has(tk)) selected.delete(tk); else selected.add(tk);
       renderTickers();
     });
     row.appendChild(chip);
   });
-  $("selCount").textContent = selected.size;
 }
-
-$("selectAll").addEventListener("click", () => { if (parsed) { selected = new Set(parsed.tickers); renderTickers(); } });
-$("deselectAll").addEventListener("click", () => { selected = new Set(); renderTickers(); });
-$("autoPick").addEventListener("click", () => {
-  if (!parsed) return;
-  const n = +$("basketN").value;
-  const cap = getSectorCap();
-  const passing = Object.entries(scores).filter(([, s]) => !s.filtered).sort((a, b) => b[1].score - a[1].score);
-  const sectorCount = {};
-  const picked = [];
-  for (const [tk, s] of passing) {
-    const sec = getSector(tk);
-    if ((sectorCount[sec] || 0) >= cap) continue;
-    picked.push(tk);
-    sectorCount[sec] = (sectorCount[sec] || 0) + 1;
-    if (picked.length >= n) break;
-  }
-  selected = new Set(picked);
-  renderTickers();
-  $("okMsg").textContent = `✅ Picked ${picked.length} (cap ${cap}/sector)`;
-});
 
 document.querySelectorAll(".maRow button").forEach(b => {
   b.addEventListener("click", () => {
@@ -606,13 +594,6 @@ document.querySelectorAll(".maRow button").forEach(b => {
     document.querySelectorAll(".maRow button").forEach(x => x.classList.remove("active"));
     b.classList.add("active");
     if (parsed) { computeAllScores(); renderTickers(); }
-  });
-});
-["uptrendMonths","benchmark","benchmark2"].forEach(id => {
-  $(id).addEventListener("change", () => {
-    if (!parsed) return;
-    computeAllScores(); renderTickers();
-    $("okMsg").textContent = `✅ Re-scored`;
   });
 });
 
@@ -641,7 +622,7 @@ function generatePlan(selectedArr, amount, maLen) {
   return { rows: plan, asOf: latestDate };
 }
 
-/* ===== HISTORICAL + SECTOR-CAPPED PICK ===== */
+/* ===== HISTORICAL ===== */
 function buildTickerCache() {
   const cache = {};
   for (const tk of parsed.tickers) {
@@ -701,7 +682,6 @@ function pickBasketAsOf(asOfDate, n, maLen, uptrendN, sectorCap) {
     if (rs.vsSPY <= 0) continue;
     local.push({ tk, score: rs.vsSPY * 0.5 + rs.vs6m * 0.3 + rs.vs3m * 0.2 });
   }
-
   local.sort((a, b) => b.score - a.score);
 
   const sectorCount = {};
@@ -716,7 +696,8 @@ function pickBasketAsOf(asOfDate, n, maLen, uptrendN, sectorCap) {
   return picked;
 }
 
-function simulatePortfolio(n, maLen, uptrendN, monthlyAmount, sellRule, sectorCap) {
+/* ===== SIMULATION with configurable sell rule ===== */
+function simulatePortfolio(sellRule, n, maLen, uptrendN, monthlyAmount, sectorCap) {
   if (!tickerCache) tickerCache = buildTickerCache();
   const anchorTk = parsed.tickers[0];
   if (!anchorTk || !parsed.series[anchorTk]) return null;
@@ -725,7 +706,7 @@ function simulatePortfolio(n, maLen, uptrendN, monthlyAmount, sellRule, sectorCa
 
   const LOOKBACK = 120;
   const startIdx = Math.max(maLen + 5, timeline.length - LOOKBACK);
-  const holdings = {};
+  const holdings = {}; // { shares, costBasis, lastPrice, lastMA, peak }
   let totalInvested = 0;
   const trades = [];
   const equityCurve = [];
@@ -734,11 +715,14 @@ function simulatePortfolio(n, maLen, uptrendN, monthlyAmount, sellRule, sectorCa
     const date = timeline[i];
     const dateKey = date.toISOString().slice(0,10);
 
+    // Update prices and MAs for holdings
     for (const tk of Object.keys(holdings)) {
       const t = tickerCache[tk];
       const idx = t.map[dateKey];
       if (idx != null) {
-        holdings[tk].lastPrice = t.series[idx].close;
+        const price = t.series[idx].close;
+        holdings[tk].lastPrice = price;
+        if (price > (holdings[tk].peak || 0)) holdings[tk].peak = price;
         const upTo = t.series.slice(0, idx + 1);
         holdings[tk].lastMA = computeMA(upTo, maLen).at(-1);
       }
@@ -747,21 +731,31 @@ function simulatePortfolio(n, maLen, uptrendN, monthlyAmount, sellRule, sectorCa
     const targetBasket = pickBasketAsOf(date, n, maLen, uptrendN, sectorCap);
     const targetSet = new Set(targetBasket);
 
+    // Sells per rule
     for (const tk of Object.keys(holdings)) {
       const h = holdings[tk];
       let shouldSell = false;
-      if (sellRule === "drop") {
-        if (!targetSet.has(tk) && h.shares > 0) shouldSell = true;
-      } else if (sellRule === "ma") {
-        if (h.lastMA != null && h.lastPrice < h.lastMA && h.shares > 0) shouldSell = true;
+      if (sellRule === "dropN") {
+        if (!targetSet.has(tk)) shouldSell = true;
+      } else if (sellRule === "belowMA") {
+        if (h.lastMA != null && h.lastPrice < h.lastMA) shouldSell = true;
+      } else if (sellRule === "stop30") {
+        // Sell if down 30% from peak (trailing)
+        if (h.peak && h.lastPrice < h.peak * 0.70) shouldSell = true;
+      } else if (sellRule === "never") {
+        // Never sell
       }
-      if (shouldSell) {
+      if (shouldSell && h.shares > 0) {
         const proceeds = h.shares * h.lastPrice;
-        trades.push({ date, action: "SELL", ticker: tk, price: h.lastPrice, shares: h.shares, amount: proceeds, pl: proceeds - h.costBasis });
+        trades.push({
+          date, action: "SELL", ticker: tk, price: h.lastPrice,
+          shares: h.shares, amount: proceeds, pl: proceeds - h.costBasis
+        });
         delete holdings[tk];
       }
     }
 
+    // Buys
     if (targetBasket.length > 0) {
       const perTicker = monthlyAmount / targetBasket.length;
       for (const tk of targetBasket) {
@@ -770,9 +764,10 @@ function simulatePortfolio(n, maLen, uptrendN, monthlyAmount, sellRule, sectorCa
         if (idx == null) continue;
         const price = t.series[idx].close;
         const sharesBought = perTicker / price;
-        if (!holdings[tk]) holdings[tk] = { shares: 0, costBasis: 0, lastPrice: price, lastMA: null };
+        if (!holdings[tk]) holdings[tk] = { shares: 0, costBasis: 0, lastPrice: price, lastMA: null, peak: price };
         holdings[tk].shares += sharesBought;
         holdings[tk].costBasis += perTicker;
+        if (price > holdings[tk].peak) holdings[tk].peak = price;
         trades.push({ date, action: "BUY", ticker: tk, price, shares: sharesBought, amount: perTicker, pl: null });
         totalInvested += perTicker;
       }
@@ -785,73 +780,96 @@ function simulatePortfolio(n, maLen, uptrendN, monthlyAmount, sellRule, sectorCa
 
   const finalValue = equityCurve.at(-1)?.value ?? 0;
   const totalReturn = totalInvested > 0 ? (finalValue / totalInvested - 1) : 0;
-
-  const startDate = timeline[startIdx];
-  const endDate = timeline[timeline.length - 1];
-  const buyHoldCurve = (sym) => {
-    if (!tickerCache[sym]) return null;
-    const t = tickerCache[sym];
-    let totalShares = 0, totInv = 0;
-    const curve = [];
-    for (let i = startIdx; i < timeline.length; i++) {
-      const dk = timeline[i].toISOString().slice(0,10);
-      const idx = t.map[dk];
-      if (idx == null) continue;
-      const price = t.series[idx].close;
-      totalShares += monthlyAmount / price;
-      totInv += monthlyAmount;
-      curve.push({ date: timeline[i], value: totalShares * price, invested: totInv });
-    }
-    const fv = curve.at(-1)?.value ?? 0;
-    return { curve, totalInvested: totInv, finalValue: fv, totalReturn: totInv > 0 ? fv / totInv - 1 : 0 };
-  };
+  const sells = trades.filter(t => t.action === "SELL");
+  const wins = sells.filter(t => t.pl > 0).length;
+  const winRate = sells.length > 0 ? (wins / sells.length * 100) : 0;
 
   return {
     trades, equityCurve, totalInvested, finalValue, totalReturn,
-    spyBH: buyHoldCurve(getBenchmark()),
-    qqqBH: buyHoldCurve(getBenchmark2()),
-    startDate, endDate, months: timeline.length - startIdx
+    sells: sells.length, winRate,
+    startDate: timeline[startIdx],
+    endDate: timeline[timeline.length - 1],
+    months: timeline.length - startIdx,
   };
+}
+
+function buyHoldBenchmark(sym, monthly, startDate, endDate, maLen) {
+  if (!tickerCache) tickerCache = buildTickerCache();
+  if (!tickerCache[sym]) return null;
+  const t = tickerCache[sym];
+  const anchorTk = parsed.tickers[0];
+  const timeline = parsed.series[anchorTk].map(p => p.date);
+  const startIdx = Math.max(maLen + 5, timeline.length - 120);
+
+  let shares = 0, inv = 0;
+  const curve = [];
+  for (let i = startIdx; i < timeline.length; i++) {
+    const dk = timeline[i].toISOString().slice(0,10);
+    const idx = t.map[dk];
+    if (idx == null) continue;
+    const price = t.series[idx].close;
+    shares += monthly / price;
+    inv += monthly;
+    curve.push({ date: timeline[i], value: shares * price });
+  }
+  const fv = curve.at(-1)?.value ?? 0;
+  return { curve, totalInvested: inv, finalValue: fv, totalReturn: inv > 0 ? fv / inv - 1 : 0 };
 }
 
 /* ===== RUN ===== */
 $("run").addEventListener("click", () => {
   $("err").textContent = "";
   if (!parsed) { $("err").textContent = "❌ Load a file first"; return; }
-  if (selected.size === 0) { $("err").textContent = "❌ Pick at least one ticker"; return; }
 
   try {
     const amount = +$("amount").value;
     const maLen = +$("maLen").value;
     const basketN = +$("basketN").value;
     const uptrendN = +$("uptrendMonths").value;
-    const sellRule = $("sellRule").value;
     const sectorCap = getSectorCap();
 
-    $("autoPick").click();
-    const selectedArr = [...selected];
+    // Pick the current top-N as the "active" basket for the plan
+    const passing = Object.entries(scores).filter(([, s]) => !s.filtered).sort((a, b) => b[1].score - a[1].score);
+    const sectorCount = {};
+    const activeBasket = [];
+    for (const [tk] of passing) {
+      const sec = getSector(tk);
+      if ((sectorCount[sec] || 0) >= sectorCap) continue;
+      activeBasket.push(tk);
+      sectorCount[sec] = (sectorCount[sec] || 0) + 1;
+      if (activeBasket.length >= basketN) break;
+    }
+    selected = new Set(activeBasket);
 
-    const { rows, asOf } = generatePlan(selectedArr, amount, maLen);
+    const { rows, asOf } = generatePlan(activeBasket, amount, maLen);
     lastPlan = { rows, asOf, amount, maLen };
-    const thisMonthName = nameBasket(asOf);
 
-    let sim = null;
-    try { sim = simulatePortfolio(basketN, maLen, uptrendN, amount, sellRule, sectorCap); }
-    catch (e) { console.error("Simulation failed:", e); }
-
-    if (sim) {
-      lastTrades = sim.trades;
-      renderSimKpis(sim, sellRule, sectorCap);
-      renderSimChart(sim);
-      renderTradeLog(sim.trades);
-      $("simPanel").style.display = "";
-      $("tradePanel").style.display = "";
+    // Run all 4 sell rules
+    const rules = [
+      { key: "dropN",   label: "Sell when drops out of top-N" },
+      { key: "belowMA", label: "Sell only when below MA" },
+      { key: "stop30",  label: "Sell at −30% from peak" },
+      { key: "never",   label: "Never sell" },
+    ];
+    lastSims = {};
+    for (const r of rules) {
+      try { lastSims[r.key] = { ...simulatePortfolio(r.key, basketN, maLen, uptrendN, amount, sectorCap), label: r.label }; }
+      catch (e) { console.error("Sim failed:", r.key, e); }
     }
 
-    renderSummary(rows, asOf, amount, thisMonthName);
-    renderBasketPlan(rows, amount);
-    $("summaryPanel").style.display = "";
+    // Benchmarks
+    const spyBH = buyHoldBenchmark(getBenchmark(), amount, asOf, asOf, maLen);
+    const qqqBH = buyHoldBenchmark(getBenchmark2(), amount, asOf, asOf, maLen);
 
+    renderComparison(lastSims, spyBH, qqqBH);
+    renderEquityChart(lastSims, spyBH, qqqBH);
+    renderTradeLog(lastSims.belowMA || lastSims.dropN);
+    renderSummary(rows, asOf, amount, nameBasket(asOf));
+    renderBasketPlan(rows, amount);
+    renderPerfTable(basketN, maLen, uptrendN, sectorCap);
+    renderRoster(basketN, maLen, uptrendN, sectorCap);
+
+    ["comparePanel","chartPanel","tradePanel","summaryPanel","perfTablePanel","rosterPanel"].forEach(id => $(id).style.display = "");
     $("asOfLabel").textContent = `— as of ${asOf.toISOString().slice(0, 10)}`;
   } catch (e) {
     $("err").textContent = "❌ " + e.message;
@@ -859,78 +877,122 @@ $("run").addEventListener("click", () => {
   }
 });
 
-function renderSimKpis(sim, sellRule, sectorCap) {
-  const retCls = sim.totalReturn >= 0 ? "g" : "r";
-  const spyRet = sim.spyBH?.totalReturn ?? 0;
-  const qqqRet = sim.qqqBH?.totalReturn ?? 0;
-  const vsSpy = sim.totalReturn - spyRet;
-  const vsQqq = sim.totalReturn - qqqRet;
-  const buys = sim.trades.filter(t => t.action === "BUY").length;
-  const sells = sim.trades.filter(t => t.action === "SELL").length;
-  const winRate = sells > 0 ? sim.trades.filter(t => t.action === "SELL" && t.pl > 0).length / sells * 100 : 0;
+function renderComparison(sims, spy, qqq) {
+  const tbody = $("compareBody");
+  const rows = [
+    { key: "dropN",   label: "Sell when drops out of top-N" },
+    { key: "belowMA", label: "Sell only when below MA" },
+    { key: "stop30",  label: "Sell at −30% from peak" },
+    { key: "never",   label: "Never sell" },
+  ].filter(r => sims[r.key]);
 
-  $("simKpis").innerHTML = `
-    <div class="summaryCard"><div class="k">Period</div><div class="v">${sim.months} mo</div><div style="font-size:11px;color:var(--muted);margin-top:4px;">${sim.startDate.toISOString().slice(0,10)} → ${sim.endDate.toISOString().slice(0,10)}</div></div>
-    <div class="summaryCard"><div class="k">Total Invested</div><div class="v">$${Math.round(sim.totalInvested).toLocaleString()}</div><div style="font-size:11px;color:var(--muted);margin-top:4px;">${buys} buys · cap ${sectorCap}/sector</div></div>
-    <div class="summaryCard"><div class="k">Final Value</div><div class="v">$${Math.round(sim.finalValue).toLocaleString()}</div><div style="font-size:11px;color:var(--muted);margin-top:4px;">${sells} sells · ${winRate.toFixed(0)}% profitable</div></div>
-    <div class="summaryCard"><div class="k">Strategy Return</div><div class="v ${retCls}">${(sim.totalReturn*100).toFixed(1)}%</div><div style="font-size:11px;color:var(--muted);margin-top:4px;">${sellRule}</div></div>
-    <div class="summaryCard"><div class="k">vs SPY</div><div class="v ${vsSpy >= 0 ? 'g' : 'r'}">${vsSpy >= 0 ? '+' : ''}${(vsSpy*100).toFixed(1)}%</div><div style="font-size:11px;color:var(--muted);margin-top:4px;">SPY: ${(spyRet*100).toFixed(1)}%</div></div>
-    <div class="summaryCard"><div class="k">vs QQQ</div><div class="v ${vsQqq >= 0 ? 'g' : 'r'}">${vsQqq >= 0 ? '+' : ''}${(vsQqq*100).toFixed(1)}%</div><div style="font-size:11px;color:var(--muted);margin-top:4px;">QQQ: ${(qqqRet*100).toFixed(1)}%</div></div>
-  `;
+  const spyRet = spy?.totalReturn ?? 0;
+  const qqqRet = qqq?.totalReturn ?? 0;
+  let bestFinal = -Infinity;
+  rows.forEach(r => { if (sims[r.key].finalValue > bestFinal) bestFinal = sims[r.key].finalValue; });
+
+  tbody.innerHTML = rows.map(r => {
+    const s = sims[r.key];
+    const retCls = s.totalReturn >= 0 ? "g" : "r";
+    const vsSpy = s.totalReturn - spyRet;
+    const vsQqq = s.totalReturn - qqqRet;
+    const win = s.finalValue === bestFinal;
+    return `<tr class="${win ? 'winner' : ''}">
+      <td><b>${r.label}</b></td>
+      <td class="num">$${Math.round(s.totalInvested).toLocaleString()}</td>
+      <td class="num"><b>$${Math.round(s.finalValue).toLocaleString()}</b></td>
+      <td class="num ${retCls}"><b>${(s.totalReturn*100).toFixed(1)}%</b></td>
+      <td class="num ${vsSpy >= 0 ? 'g' : 'r'}">${vsSpy >= 0 ? '+' : ''}${(vsSpy*100).toFixed(1)}%</td>
+      <td class="num ${vsQqq >= 0 ? 'g' : 'r'}">${vsQqq >= 0 ? '+' : ''}${(vsQqq*100).toFixed(1)}%</td>
+      <td class="num">${s.sells}</td>
+      <td class="num">${s.winRate.toFixed(0)}%</td>
+    </tr>`;
+  }).join("");
+
+  // Add benchmark rows
+  if (spy) {
+    tbody.innerHTML += `<tr style="opacity:0.7; font-style:italic;">
+      <td>Buy & Hold ${getBenchmark()}</td>
+      <td class="num">$${Math.round(spy.totalInvested).toLocaleString()}</td>
+      <td class="num">$${Math.round(spy.finalValue).toLocaleString()}</td>
+      <td class="num ${spy.totalReturn >= 0 ? 'g' : 'r'}">${(spy.totalReturn*100).toFixed(1)}%</td>
+      <td class="num m">—</td>
+      <td class="num m">—</td>
+      <td class="num">0</td>
+      <td class="num">—</td>
+    </tr>`;
+  }
+  if (qqq) {
+    tbody.innerHTML += `<tr style="opacity:0.7; font-style:italic;">
+      <td>Buy & Hold ${getBenchmark2()}</td>
+      <td class="num">$${Math.round(qqq.totalInvested).toLocaleString()}</td>
+      <td class="num">$${Math.round(qqq.finalValue).toLocaleString()}</td>
+      <td class="num ${qqq.totalReturn >= 0 ? 'g' : 'r'}">${(qqq.totalReturn*100).toFixed(1)}%</td>
+      <td class="num m">—</td>
+      <td class="num m">—</td>
+      <td class="num">0</td>
+      <td class="num">—</td>
+    </tr>`;
+  }
 }
 
-function renderSimChart(sim) {
+function renderEquityChart(sims, spy, qqq) {
   if (simChart) simChart.destroy();
-  const labels = sim.equityCurve.map(p => p.date.toISOString().slice(0,7));
-  const datasets = [{
-    label: "Strategy Portfolio",
-    data: sim.equityCurve.map(p => p.value),
-    borderColor: "#58a6ff", backgroundColor: "rgba(88,166,255,0.15)",
+  const first = Object.values(sims)[0];
+  if (!first) return;
+  const labels = first.equityCurve.map(p => p.date.toISOString().slice(0,7));
+
+  const COLORS = { dropN: "#58a6ff", belowMA: "#3fb950", stop30: "#d29922", never: "#a371f7" };
+  const datasets = Object.entries(sims).map(([key, s]) => ({
+    label: s.label,
+    data: s.equityCurve.map(p => p.value),
+    borderColor: COLORS[key] || "#58a6ff",
     borderWidth: 2, tension: .15, pointRadius: 0, fill: false,
-  }];
-  if (sim.spyBH) datasets.push({
-    label: `Buy & Hold ${getBenchmark()}`, data: sim.spyBH.curve.map(p => p.value),
+  }));
+
+  if (spy) datasets.push({
+    label: `Buy & Hold ${getBenchmark()}`,
+    data: spy.curve.map(p => p.value),
     borderColor: "#8b949e", borderDash: [5,4], borderWidth: 1.5, tension: .15, pointRadius: 0, fill: false,
   });
-  if (sim.qqqBH) datasets.push({
-    label: `Buy & Hold ${getBenchmark2()}`, data: sim.qqqBH.curve.map(p => p.value),
-    borderColor: "#d29922", borderDash: [5,4], borderWidth: 1.5, tension: .15, pointRadius: 0, fill: false,
+  if (qqq) datasets.push({
+    label: `Buy & Hold ${getBenchmark2()}`,
+    data: qqq.curve.map(p => p.value),
+    borderColor: "#e3b341", borderDash: [5,4], borderWidth: 1.5, tension: .15, pointRadius: 0, fill: false,
   });
+
   simChart = new Chart($("simChart"), {
     type: "line",
     data: { labels, datasets },
     options: {
       responsive: true, maintainAspectRatio: false,
-      plugins: { legend: { labels: { color: "#e6edf3" } },
-        title: { display: true, text: `Portfolio Value (120-month simulation)`, color: "#e6edf3" } },
+      plugins: { legend: { labels: { color: "#e6edf3", boxWidth: 12 } },
+        title: { display: true, text: "Portfolio Value — 4 Sell Rules vs Benchmarks", color: "#e6edf3" } },
       scales: { x: { ticks: { color: "#8b949e", maxTicksLimit: 12 }, grid: { color: "#2a3038" } },
                 y: { ticks: { color: "#8b949e", callback: v => "$" + Math.round(v).toLocaleString() }, grid: { color: "#2a3038" } } }
     }
   });
 }
 
-function renderTradeLog(trades) {
+function renderTradeLog(sim) {
   const container = $("tradeBody");
-  if (!trades || trades.length === 0) {
-    container.innerHTML = "<div style='color:var(--muted);padding:14px;'>No trades computed.</div>";
-    return;
-  }
-  const sorted = [...trades].sort((a, b) => b.date - a.date);
-  container.innerHTML = sorted.slice(0, 300).map(t => {
-    const actionCls = t.action === "BUY" ? "g" : "r";
+  if (!sim) { container.innerHTML = "<div style='color:var(--muted);padding:14px;'>No trades.</div>"; return; }
+  const sorted = [...sim.trades].sort((a, b) => b.date - a.date);
+  container.innerHTML = sorted.slice(0, 200).map(t => {
+    const amtCls = t.action === "BUY" ? "" : (t.pl >= 0 ? "g" : "r");
     const amountDisplay = t.action === "BUY"
       ? `$${t.amount.toFixed(2)}`
       : `$${t.amount.toFixed(2)} (${t.pl >= 0 ? '+' : ''}$${t.pl.toFixed(2)})`;
-    const plCls = t.action === "SELL" ? (t.pl >= 0 ? "g" : "r") : "";
-    return `<div style="display:grid; grid-template-columns: 110px 70px 80px 100px 100px 1fr; gap:10px; padding:6px 12px; border-bottom:1px solid var(--line);">
-      <div style="color:var(--muted);font-size:11px;">${t.date.toISOString().slice(0,10)}</div>
-      <div class="${actionCls}" style="font-weight:700;">${t.action}</div>
-      <div style="color:var(--accent);font-weight:700;">${t.ticker}</div>
-      <div style="text-align:right;">$${t.price.toFixed(2)}</div>
-      <div style="text-align:right;">${t.shares.toFixed(3)}</div>
-      <div style="text-align:right;" class="${plCls}">${amountDisplay}</div>
+    return `<div class="tradeRow">
+      <div class="date">${t.date.toISOString().slice(0,10)}</div>
+      <div class="action ${t.action}">${t.action}</div>
+      <div class="ticker">${t.ticker}</div>
+      <div class="num">$${t.price.toFixed(2)}</div>
+      <div class="num">${t.shares.toFixed(3)}</div>
+      <div class="num ${amtCls}">${amountDisplay}</div>
     </div>`;
   }).join("");
+  $("tradeLabel").textContent = `— showing "${sim.label}"`;
 }
 
 function renderSummary(rows, asOf, amount, basketName) {
@@ -979,17 +1041,113 @@ function renderBasketPlan(rows, amount) {
   box.style.display = "";
 }
 
+/* ===== MONTHLY BASKET HISTORY (roster + perf table) ===== */
+function computeHistoricalBaskets(n, maLen, uptrendN, sectorCap) {
+  if (!tickerCache) tickerCache = buildTickerCache();
+  const anchorTk = parsed.tickers[0];
+  if (!anchorTk || !parsed.series[anchorTk]) return [];
+  const timeline = parsed.series[anchorTk].map(p => p.date);
+  const latestKey = timeline[timeline.length - 1].toISOString().slice(0,10);
+  const bench = getBenchmark();
+  const bench2 = getBenchmark2();
+  const out = [];
+  const startIdx = Math.max(maLen + 5, timeline.length - 36);
+
+  for (let i = startIdx; i < timeline.length - 1; i++) {
+    const asOf = timeline[i];
+    const asOfKey = asOf.toISOString().slice(0,10);
+    const topN = pickBasketAsOf(asOf, n, maLen, uptrendN, sectorCap);
+    if (topN.length === 0) continue;
+
+    const rets = [];
+    for (const tk of topN) {
+      const t = tickerCache[tk];
+      const iStart = t.map[asOfKey];
+      const iEnd = t.map[latestKey];
+      if (iStart == null || iEnd == null || iStart === iEnd) continue;
+      rets.push(t.series[iEnd].close / t.series[iStart].close - 1);
+    }
+    if (rets.length === 0) continue;
+    const basketRet = rets.reduce((s, r) => s + r, 0) / rets.length;
+
+    const benchReturn = (sym) => {
+      if (!tickerCache[sym]) return null;
+      const t = tickerCache[sym];
+      const iS = t.map[asOfKey]; const iE = t.map[latestKey];
+      if (iS == null || iE == null || iS === iE) return null;
+      return t.series[iE].close / t.series[iS].close - 1;
+    };
+
+    out.push({
+      asOf, topN, basketRet,
+      benchmarkRet: benchReturn(bench),
+      benchmark2Ret: benchReturn(bench2),
+      benchmarkName: bench, benchmark2Name: bench2,
+      ageMonths: timeline.length - 1 - i,
+      name: nameBasket(asOf)
+    });
+  }
+  return out;
+}
+
+function renderPerfTable(n, maLen, uptrendN, sectorCap) {
+  const history = computeHistoricalBaskets(n, maLen, uptrendN, sectorCap);
+  const tbody = $("perfTableBody");
+  if (history.length === 0) { tbody.innerHTML = "<tr><td colspan='6' style='padding:14px;color:var(--muted);'>No baskets computed.</td></tr>"; return; }
+  const rows = [...history].sort((a, b) => b.asOf - a.asOf);
+  tbody.innerHTML = rows.map(r => {
+    const ret = r.basketRet;
+    const retCls = ret >= 0 ? "g" : "r";
+    let vsSPY = "—", vsSPYCls = "m", vsQQQ = "—", vsQQQCls = "m";
+    if (r.benchmarkRet != null) { const d = ret - r.benchmarkRet; vsSPYCls = d >= 0 ? "g" : "r"; vsSPY = (d >= 0 ? "+" : "") + (d*100).toFixed(1) + "%"; }
+    if (r.benchmark2Ret != null) { const d = ret - r.benchmark2Ret; vsQQQCls = d >= 0 ? "g" : "r"; vsQQQ = (d >= 0 ? "+" : "") + (d*100).toFixed(1) + "%"; }
+    return `<tr>
+      <td><b style="color:var(--accent);">${r.name}</b></td>
+      <td class="num m">${r.ageMonths} mo</td>
+      <td class="num ${retCls}"><b>${(ret*100).toFixed(1)}%</b></td>
+      <td class="num ${vsSPYCls}">${vsSPY}</td>
+      <td class="num ${vsQQQCls}">${vsQQQ}</td>
+      <td style="font-size:11px;color:var(--muted);line-height:1.4;">${r.topN.join(" · ")}</td>
+    </tr>`;
+  }).join("");
+}
+
+function renderRoster(n, maLen, uptrendN, sectorCap) {
+  const history = computeHistoricalBaskets(n, maLen, uptrendN, sectorCap);
+  const container = $("rosterBody");
+  if (history.length === 0) { container.innerHTML = "<div style='padding:14px;color:var(--muted);'>No baskets computed.</div>"; return; }
+  const rows = [...history].sort((a, b) => b.asOf - a.asOf);
+  const currentName = nameBasket(parsed.series[parsed.tickers[0]].at(-1).date);
+  container.innerHTML = rows.map(r => {
+    const cls = r.basketRet >= 0 ? "g" : "r";
+    const isCurrent = r.name === currentName;
+    let vs1 = "", vs2 = "", cls1 = "m", cls2 = "m";
+    if (r.benchmarkRet != null) { const d = r.basketRet - r.benchmarkRet; cls1 = d >= 0 ? "g" : "r"; vs1 = (d*100 >= 0 ? '+' : '') + (d*100).toFixed(1) + ' vs ' + r.benchmarkName; }
+    if (r.benchmark2Ret != null) { const d = r.basketRet - r.benchmark2Ret; cls2 = d >= 0 ? "g" : "r"; vs2 = (d*100 >= 0 ? '+' : '') + (d*100).toFixed(1) + ' vs ' + r.benchmark2Name; }
+    return `<div class="rosterCard ${isCurrent ? 'current' : ''}">
+      <div class="name">${r.name}</div>
+      <div class="meta">${r.topN.length} picks · ${r.ageMonths} mo old</div>
+      <div class="ret ${cls}">${(r.basketRet*100).toFixed(1)}%</div>
+      <div class="detail ${cls1}">${vs1}</div>
+      <div class="detail ${cls2}">${vs2}</div>
+      <div class="detail" style="margin-top:6px;">${r.topN.join(" · ")}</div>
+    </div>`;
+  }).join("");
+}
+
+/* ===== EXPORT ===== */
 $("exportTrades").addEventListener("click", () => {
-  if (!lastTrades || lastTrades.length === 0) { alert("Run a simulation first"); return; }
+  const sim = lastSims.belowMA || lastSims.dropN;
+  if (!sim) { alert("Run the simulation first"); return; }
   const header = "date,action,ticker,price,shares,amount,realized_pl";
-  const lines = lastTrades.map(t =>
+  const lines = sim.trades.map(t =>
     `${t.date.toISOString().slice(0,10)},${t.action},${t.ticker},${t.price.toFixed(2)},${t.shares.toFixed(4)},${t.amount.toFixed(2)},${t.pl != null ? t.pl.toFixed(2) : ""}`
   );
   const csv = [header, ...lines].join("\n");
   const blob = new Blob([csv], { type: "text/csv" });
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
-  a.href = url; a.download = `trade_log_${new Date().toISOString().slice(0,10)}.csv`;
+  a.href = url; a.download = `trade_log_${sim.label.replace(/\s/g,'_')}_${new Date().toISOString().slice(0,10)}.csv`;
   document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
 });
 </script>
