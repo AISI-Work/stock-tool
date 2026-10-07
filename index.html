@@ -41,6 +41,7 @@
   .meta { color: var(--muted); font-size: 12px; margin-bottom: 8px; }
   .meta .dot { color: var(--gold); }
 
+  /* ── boxes row ───────────────────────────────────────────── */
   .boxes {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
@@ -66,6 +67,7 @@
   .box.neg .value { color: #f87171; }
   .box.accent .value { color: var(--gold); }
 
+  /* ── tables ──────────────────────────────────────────────── */
   table {
     width: 100%;
     border-collapse: collapse;
@@ -88,6 +90,7 @@
     text-transform: uppercase;
     font-size: 11px;
     letter-spacing: 0.5px;
+    text-align: right;
   }
   th:first-child, td:first-child { text-align: left; }
   th:nth-child(2), td:nth-child(2) { text-align: left; }
@@ -150,9 +153,11 @@
   · <button class="cache-btn" onclick="forceRefresh()">🔄 Force refresh</button>
 </div>
 
+<!-- ══ 12-MONTH RETURN BOXES ══ -->
 <h2>12-Month Return Boxes</h2>
 <div class="boxes" id="boxes"></div>
 
+<!-- ══ SELLS TABLE ══ -->
 <h2>Last 12 Months of Sells</h2>
 <div class="legend">
   <span><i class="swatch win"></i> Winner</span>
@@ -168,6 +173,7 @@
   <tbody></tbody>
 </table>
 
+<!-- ══ SUMMARY ══ -->
 <h2>Summary</h2>
 <div class="boxes" id="summary"></div>
 
@@ -177,12 +183,6 @@
 </footer>
 
 <script>
-// ═══════════════════════════════════════════════════════════════════════
-//  CONFIG
-// ═══════════════════════════════════════════════════════════════════════
-const TTL_HOURS = 12;
-const CACHE_KEY = "monthly_action_plan_v1";
-
 // ═══════════════════════════════════════════════════════════════════════
 //  DATA
 // ═══════════════════════════════════════════════════════════════════════
@@ -224,22 +224,18 @@ const BASKETS = [
 ];
 
 // ═══════════════════════════════════════════════════════════════════════
-//  HELPERS
+//  TTL CACHE (localStorage)
 // ═══════════════════════════════════════════════════════════════════════
-const fmtPct  = v => (v >= 0 ? "+" : "") + v.toFixed(1) + "%";
-const fmtUsd  = v => "$" + v.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-const fmtPnl  = v => (v >= 0 ? "+" : "−") + "$" + Math.abs(v).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-const boxCls  = v => v >= 0 ? "pos" : "neg";
+const TTL_HOURS = 12;
+const CACHE_KEY = "monthly_action_plan_v1";
 
-// ═══════════════════════════════════════════════════════════════════════
-//  TTL CACHE
-// ═══════════════════════════════════════════════════════════════════════
 function isFresh() {
   try {
     const raw = localStorage.getItem(CACHE_KEY);
     if (!raw) return false;
     const { ts } = JSON.parse(raw);
-    return (Date.now() - ts) < TTL_HOURS * 3600 * 1000;
+    const ageMs = Date.now() - ts;
+    return ageMs < TTL_HOURS * 3600 * 1000;
   } catch { return false; }
 }
 
@@ -254,7 +250,7 @@ function buildPayload() {
   const winners = sells.filter(s => s.pnl > 0);
   const losers  = sells.filter(s => s.pnl < 0);
   const netPnl  = sells.reduce((a, s) => a + s.pnl, 0);
-  const avg     = k => baskets.reduce((a, b) => a + b[k], 0) / baskets.length;
+  const avg     = key => baskets.reduce((a, b) => a + b[key], 0) / baskets.length;
   const beatSpy = baskets.filter(b => b.ret > b.spy).length;
   const beatQqq = baskets.filter(b => b.ret > b.qqq).length;
 
@@ -265,15 +261,15 @@ function buildPayload() {
     sells,
     baskets,
     summary: {
-      winners:   winners.length,
-      losers:    losers.length,
-      winRate:   (winners.length / sells.length * 100).toFixed(0) + "%",
-      netPnl:    (netPnl >= 0 ? "+$" : "−$") + Math.abs(netPnl).toFixed(2),
+      winners: winners.length,
+      losers:  losers.length,
+      winRate: (winners.length / sells.length * 100).toFixed(0) + "%",
+      netPnl:  (netPnl >= 0 ? "+$" : "-$") + Math.abs(netPnl).toFixed(2),
       avgBasket: fmtPct(avg("ret")),
       avgSpy:    fmtPct(avg("spy")),
       avgQqq:    fmtPct(avg("qqq")),
-      beatSpy:   `${beatSpy}/${baskets.length}`,
-      beatQqq:   `${beatQqq}/${baskets.length}`,
+      beatSpy: `${beatSpy}/${baskets.length}`,
+      beatQqq: `${beatQqq}/${baskets.length}`,
     },
   };
 }
@@ -290,35 +286,34 @@ function getData(force = false) {
 }
 
 function forceRefresh() {
-  render(getData(true));
+  const data = getData(true);
+  render(data);
 }
+
+// ═══════════════════════════════════════════════════════════════════════
+//  HELPERS
+// ═══════════════════════════════════════════════════════════════════════
+const fmtPct   = v => (v >= 0 ? "+" : "") + v.toFixed(1) + "%";
+const fmtUsd   = v => "$" + v.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const fmtPnl   = v => (v >= 0 ? "+" : "−") + "$" + Math.abs(v).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const signCls  = v => v >= 0 ? "pos" : "neg";
+const boxCls   = v => v >= 0 ? "pos" : "neg";
 
 // ═══════════════════════════════════════════════════════════════════════
 //  RENDER
 // ═══════════════════════════════════════════════════════════════════════
-function makeBox(label, value, sub, cls) {
-  const div = document.createElement("div");
-  div.className = "box " + (cls || "");
-  div.innerHTML = `
-    <div class="label">${label}</div>
-    <div class="value">${value}</div>
-    ${sub ? `<div class="sub">${sub}</div>` : ""}
-  `;
-  return div;
-}
-
 function render(data) {
-  // header
+  // ── header ──
   document.getElementById("gen-time").textContent =
     new Date(data.generatedAt).toLocaleString();
   document.getElementById("ttl").textContent = data.ttlHours + "h";
 
-  // ── boxes: aggregate + per-month ──
+  // ── 12-month boxes ──
   const boxes = document.getElementById("boxes");
   boxes.innerHTML = "";
-
+  // First: aggregate boxes
   const agg = [
-    { label: "Avg Basket", value: data.summary.avgBasket, cls: boxCls(parseFloat(data.summary.avgBasket)) },
+    { label: "Avg Basket", value: data.summary.avgBasket, cls: boxCls(parseFloat(data.summary.avgBasket)) ? "pos" : "neg" },
     { label: "Avg SPY",    value: data.summary.avgSpy,    cls: "accent" },
     { label: "Avg QQQ",    value: data.summary.avgQqq,    cls: "accent" },
     { label: "Beat SPY",   value: data.summary.beatSpy,   cls: "accent" },
@@ -326,6 +321,7 @@ function render(data) {
   ];
   agg.forEach(a => boxes.appendChild(makeBox(a.label, a.value, "", a.cls)));
 
+  // Then: per-month boxes
   data.baskets.forEach(b => {
     boxes.appendChild(makeBox(
       b.basket,
@@ -339,8 +335,9 @@ function render(data) {
   const tbody = document.querySelector("#sells tbody");
   tbody.innerHTML = "";
   data.sells.forEach(s => {
+    const win = s.pnl > 0;
     const tr = document.createElement("tr");
-    tr.className = s.pnl > 0 ? "win" : "loss";
+    tr.className = win ? "win" : "loss";
     tr.innerHTML = `
       <td>${s.date}</td>
       <td>${s.ticker}</td>
@@ -355,12 +352,24 @@ function render(data) {
   // ── summary boxes ──
   const sum = document.getElementById("summary");
   sum.innerHTML = "";
-  [
-    { label: "Winners",  value: data.summary.winners, cls: "pos" },
-    { label: "Losers",   value: data.summary.losers,  cls: "neg" },
-    { label: "Win Rate", value: data.summary.winRate, cls: "accent" },
-    { label: "Net P&L",  value: data.summary.netPnl,  cls: data.summary.netPnl.startsWith("+") ? "pos" : "neg" },
-  ].forEach(i => sum.appendChild(makeBox(i.label, i.value, "", i.cls)));
+  const items = [
+    { label: "Winners",   value: data.summary.winners,  cls: "pos" },
+    { label: "Losers",    value: data.summary.losers,   cls: "neg" },
+    { label: "Win Rate",  value: data.summary.winRate,  cls: "accent" },
+    { label: "Net P&L",   value: data.summary.netPnl,   cls: data.summary.netPnl.startsWith("+") ? "pos" : "neg" },
+  ];
+  items.forEach(i => sum.appendChild(makeBox(i.label, i.value, "", i.cls)));
+}
+
+function makeBox(label, value, sub, cls) {
+  const div = document.createElement("div");
+  div.className = "box " + (cls || "");
+  div.innerHTML = `
+    <div class="label">${label}</div>
+    <div class="value">${value}</div>
+    ${sub ? `<div class="sub">${sub}</div>` : ""}
+  `;
+  return div;
 }
 
 // ═══════════════════════════════════════════════════════════════════════
