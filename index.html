@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Monthly Action Plan — v5 Dual Benchmark</title>
+<title>Monthly Action Plan — v5.1</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <style>
   :root { --bg:#0e1117; --panel:#161b22; --line:#2a3038; --txt:#e6edf3; --muted:#8b949e; --accent:#58a6ff; --green:#3fb950; --red:#f85149; --amber:#d29922; --purple:#a371f7; --cyan:#39c5cf; }
@@ -22,7 +22,7 @@
   button.ghost:hover { border-color:var(--accent); }
   button.small { padding:5px 12px; font-size:12px; }
   table { width:100%; border-collapse: collapse; font-size: 13px; }
-  th, td { padding:8px 10px; text-align:left; border-bottom:1px solid var(--line); }
+  th, td { padding:8px 10px; text-align:left; border-bottom:1px solid var(--line); vertical-align:top; }
   th { color: var(--muted); font-weight:500; font-size:11px; text-transform:uppercase; letter-spacing:.4px; white-space:nowrap; }
   td.num { text-align:right; font-variant-numeric: tabular-nums; }
   th.num { text-align:right; }
@@ -78,22 +78,12 @@
   .rosterCard .meta { font-size:11px; color: var(--muted); margin-top:4px; }
   .rosterCard .ret { font-size:20px; font-weight:700; margin-top:8px; }
   .rosterCard .detail { font-size:11px; color: var(--muted); margin-top: 4px; }
-  .histRow { display:grid; grid-template-columns: 130px 1fr 110px 110px 110px 90px; gap:14px; padding:12px 14px; border-bottom:1px solid var(--line); align-items:center; }
-  .histRow:last-child { border-bottom:none; }
-  .histHead { display:grid; grid-template-columns: 130px 1fr 110px 110px 110px 90px; gap:14px; padding:8px 14px; border-bottom:1px solid var(--line); color:var(--muted); font-size:11px; text-transform:uppercase; letter-spacing:.4px; }
-  .histMonth { font-weight:700; color:var(--accent); font-size:14px; }
-  .histMonthSub { font-size:11px; color: var(--muted); font-weight: 400; margin-top: 2px; }
-  .histPicks { font-size:12px; color: var(--muted); line-height: 1.5; }
-  .histPicks b { color: var(--txt); }
-  .histResult { font-weight:700; font-size:15px; text-align:right; }
-  .histVs { text-align:right; font-size:12px; }
-  .histDays { text-align:right; font-size:11px; color: var(--muted); }
 </style>
 </head>
 <body>
 
-<h1>📋 Monthly Action Plan — v5 Dual Benchmark</h1>
-<div class="sub">Rank by 12-month relative strength · dual benchmarks · 36-month roster</div>
+<h1>📋 Monthly Action Plan — v5.1</h1>
+<div class="sub">Relative strength vs benchmark · dual benchmark comparison table · 36-month history</div>
 
 <div class="panel">
   <div class="drop" id="drop">
@@ -147,9 +137,9 @@
       <label>Basket Size</label>
       <select id="basketN">
         <option value="5">Top 5</option>
-        <option value="10">Top 10</option>
+        <option value="10" selected>Top 10</option>
         <option value="20">Top 20</option>
-        <option value="30" selected>Top 30</option>
+        <option value="30">Top 30</option>
       </select>
     </div>
     <div>
@@ -206,6 +196,26 @@
   </table>
 </div>
 
+<div class="panel" id="perfTablePanel" style="display:none">
+  <h3>📊 Basket Performance Table</h3>
+  <div style="font-size:12px;color:var(--muted);margin-bottom:12px;">
+    One row per basket. Return = equal-weight since pick date. vs SPY / vs QQQ = spread in percentage points over the same window.
+  </div>
+  <table>
+    <thead>
+      <tr>
+        <th>Basket</th>
+        <th class="num">Age</th>
+        <th class="num">Return</th>
+        <th class="num">vs SPY</th>
+        <th class="num">vs QQQ</th>
+        <th>Holdings</th>
+      </tr>
+    </thead>
+    <tbody id="perfTableBody"></tbody>
+  </table>
+</div>
+
 <div class="panel" id="rollingPanel" style="display:none">
   <h3>📈 <span id="rollingTitle">Basket</span> — Trailing Returns</h3>
   <div class="rollingGrid" id="rollingGrid"></div>
@@ -215,11 +225,6 @@
 <div class="panel" id="rosterPanel" style="display:none">
   <h3>🗂️ Basket Roster — Last 36 Months</h3>
   <div class="roster" id="rosterBody"></div>
-</div>
-
-<div class="panel" id="historyPanel" style="display:none">
-  <h3>📅 Forward Performance — Detail</h3>
-  <div id="historyBody"></div>
 </div>
 
 <div class="panel" id="summaryPanel" style="display:none">
@@ -265,7 +270,7 @@ fileEl.addEventListener("change", e => { if (e.target.files.length) handleFile(e
 clearEl.addEventListener("click", () => {
   parsed = null; selected = new Set(); scores = {}; tickerCache = null; fileEl.value = "";
   infoEl.style.display = "none"; dropEl.style.display = "";
-  ["pickerPanel","scoringPanel","rollingPanel","rosterPanel","historyPanel","summaryPanel"].forEach(id => $(id).style.display = "none");
+  ["pickerPanel","scoringPanel","perfTablePanel","rollingPanel","rosterPanel","summaryPanel"].forEach(id => $(id).style.display = "none");
   $("err").textContent = ""; $("okMsg").textContent = "";
 });
 
@@ -311,13 +316,13 @@ function loadParsed(p) {
   tickerCache = null;
   computeAllScores();
   const passing = Object.entries(scores).filter(([, s]) => !s.filtered).sort((a, b) => a[1].rank - b[1].rank);
-  const basketN = +($("basketN")?.value ?? 30);
+  const basketN = +($("basketN")?.value ?? 10);
   selected = new Set(passing.slice(0, basketN).map(([tk]) => tk));
   renderTickers();
   renderScoringTable();
   $("pickerPanel").style.display = "";
   $("scoringPanel").style.display = "";
-  ["rollingPanel","rosterPanel","historyPanel","summaryPanel"].forEach(id => $(id).style.display = "none");
+  ["perfTablePanel","rollingPanel","rosterPanel","summaryPanel"].forEach(id => $(id).style.display = "none");
 }
 
 /* ===== PARSER ===== */
@@ -463,7 +468,6 @@ function computeAllScores() {
     const lastMA = ma.at(-1);
     const aboveMA = lastMA != null && lastPrice > lastMA;
 
-    // Sanity: reject corrupt columns (price more than 5x or 0.2x its MA)
     const priceVsMA = lastMA > 0 ? lastPrice / lastMA : 1;
     if (priceVsMA > 5 || priceVsMA < 0.2) {
       scores[tk] = { score: -1, rank: 9999, filtered: true, reason: "bad data", stock12m: 0, vsSPY: 0, vs6m: 0, vs3m: 0, dist: 0, monthsAbove: 0 };
@@ -780,7 +784,7 @@ $("run").addEventListener("click", () => {
       .slice(0, basketN)
       .map(([tk]) => tk);
 
-    ["rollingPanel","rosterPanel","historyPanel","summaryPanel"].forEach(id => $(id).style.display = "");
+    ["perfTablePanel","rollingPanel","rosterPanel","summaryPanel"].forEach(id => $(id).style.display = "");
 
     renderSummary(rows, asOf, amount, thisMonthName);
     renderBasketPlan(rows, amount);
@@ -790,8 +794,8 @@ $("run").addEventListener("click", () => {
     let history = [];
     try { history = historicalBaskets(basketN, maLen, uptrendN, holdMonths); } catch (e) { console.error("History failed:", e); }
 
+    try { renderPerfTable(history); } catch (e) { console.error("Perf table failed:", e); }
     try { renderRosterPanel(history, thisMonthName); } catch (e) { console.error("Roster failed:", e); }
-    try { renderHistoryPanel(history, thisMonthName); } catch (e) { console.error("History render failed:", e); }
 
     $("asOfLabel").textContent = `— as of ${asOf.toISOString().slice(0, 10)}`;
   } catch (e) {
@@ -799,6 +803,45 @@ $("run").addEventListener("click", () => {
     console.error(e);
   }
 });
+
+function renderPerfTable(history) {
+  const tbody = $("perfTableBody");
+  if (!tbody) return;
+  if (history.length === 0) {
+    tbody.innerHTML = "<tr><td colspan='6' style='color:var(--muted);padding:14px;'>No baskets computed.</td></tr>";
+    return;
+  }
+
+  const rows = [...history].sort((a, b) => b.asOf - a.asOf);
+
+  tbody.innerHTML = rows.map(r => {
+    const ret = r.basketRet;
+    const retCls = ret >= 0 ? "g" : "r";
+
+    let vsSPY = "—", vsSPYCls = "m";
+    if (r.benchmarkRet != null) {
+      const d = ret - r.benchmarkRet;
+      vsSPYCls = d >= 0 ? "g" : "r";
+      vsSPY = (d >= 0 ? "+" : "") + (d*100).toFixed(1) + "%";
+    }
+
+    let vsQQQ = "—", vsQQQCls = "m";
+    if (r.benchmark2Ret != null) {
+      const d = ret - r.benchmark2Ret;
+      vsQQQCls = d >= 0 ? "g" : "r";
+      vsQQQ = (d >= 0 ? "+" : "") + (d*100).toFixed(1) + "%";
+    }
+
+    return `<tr>
+      <td><b style="color:var(--accent);">${r.name}</b></td>
+      <td class="num m">${r.ageMonths} mo</td>
+      <td class="num ${retCls}"><b>${(ret*100).toFixed(1)}%</b></td>
+      <td class="num ${vsSPYCls}">${vsSPY}</td>
+      <td class="num ${vsQQQCls}">${vsQQQ}</td>
+      <td style="font-size:11px;color:var(--muted);line-height:1.4;">${r.topN.join(" · ")}</td>
+    </tr>`;
+  }).join("");
+}
 
 function renderRollingPanel(topN, n, basketName) {
   $("rollingTitle").textContent = `${basketName} Basket (Top ${n})`;
@@ -912,54 +955,6 @@ function renderRosterPanel(history, currentName) {
       <div class="detail" style="margin-top:6px;">${r.topN.join(" · ")}</div>
     </div>`;
   }).join("");
-}
-
-function renderHistoryPanel(history, currentName) {
-  const container = $("historyBody");
-  if (history.length === 0) {
-    container.innerHTML = "<div style='color:var(--muted);padding:14px;'>No prior baskets computed.</div>";
-    return;
-  }
-  const rows = [...history].reverse();
-
-  let html = `<div class="histHead">
-    <div>Basket</div><div>Picks</div>
-    <div style="text-align:right;">Return</div>
-    <div style="text-align:right;">vs SPY</div>
-    <div style="text-align:right;">vs QQQ</div>
-    <div style="text-align:right;">Age</div>
-  </div>`;
-
-  html += rows.map(r => {
-    const bCls = r.basketRet >= 0 ? "g" : "r";
-    let vs1 = "—", vs1Cls = "m", vs2 = "—", vs2Cls = "m";
-
-    if (r.benchmarkRet != null) {
-      const diff = r.basketRet - r.benchmarkRet;
-      vs1Cls = diff >= 0 ? "g" : "r";
-      vs1 = (diff >= 0 ? "+" : "") + (diff*100).toFixed(1) + " pts";
-    }
-    if (r.benchmark2Ret != null) {
-      const diff = r.basketRet - r.benchmark2Ret;
-      vs2Cls = diff >= 0 ? "g" : "r";
-      vs2 = (diff >= 0 ? "+" : "") + (diff*100).toFixed(1) + " pts";
-    }
-
-    const isCurrent = r.name === currentName;
-    return `<div class="histRow">
-      <div>
-        <div class="histMonth" style="${isCurrent ? 'color:var(--amber);' : ''}">${r.name}</div>
-        <div class="histMonthSub">${isCurrent ? 'current' : r.ageMonths + ' mo old'}</div>
-      </div>
-      <div class="histPicks"><b>${r.topN.join(" · ")}</b></div>
-      <div class="histResult ${bCls}">${(r.basketRet*100).toFixed(1)}%</div>
-      <div class="histVs ${vs1Cls}">${vs1}</div>
-      <div class="histVs ${vs2Cls}">${vs2}</div>
-      <div class="histDays">${r.latestDate.toISOString().slice(0,10)}</div>
-    </div>`;
-  }).join("");
-
-  container.innerHTML = html;
 }
 
 function renderSummary(rows, asOf, amount, basketName) {
